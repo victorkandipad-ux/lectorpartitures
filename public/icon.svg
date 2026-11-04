@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1f2a44"/>
+  <!-- music stand desk -->
+  <rect x="96" y="96" width="320" height="230" rx="18" fill="#f6f1e4"/>
+  <g stroke="#1f2a44" stroke-width="6" stroke-linecap="round">
+    <line x1="126" y1="140" x2="386" y2="140"/><line x1="126" y1="158" x2="386" y2="158"/>
+    <line x1="126" y1="176" x2="386" y2="176"/><line x1="126" y1="194" x2="386" y2="194"/>
+    <line x1="126" y1="212" x2="386" y2="212"/>
+    <line x1="126" y1="250" x2="386" y2="250"/><line x1="126" y1="268" x2="386" y2="268"/>
+    <line x1="126" y1="286" x2="386" y2="286"/>
+    <line x1="256" y1="140" x2="256" y2="212"/>
+  </g>
+  <ellipse cx="196" cy="198" rx="15" ry="11" fill="#1f2a44" transform="rotate(-20 196 198)"/>
+  <line x1="209" y1="194" x2="209" y2="130" stroke="#1f2a44" stroke-width="6"/>
+  <ellipse cx="316" cy="180" rx="15" ry="11" fill="#1f2a44" transform="rotate(-20 316 180)"/>
+  <line x1="329" y1="176" x2="329" y2="112" stroke="#1f2a44" stroke-width="6"/>
+  <!-- stand -->
+  <rect x="246" y="326" width="20" height="110" fill="#e0b85a"/>
+  <path d="M256 430 L176 470 M256 430 L336 470" stroke="#e0b85a" stroke-width="18" stroke-linecap="round"/>
+</svg>

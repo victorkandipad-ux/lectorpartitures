@@ -1,0 +1,55 @@
+Partituras de ejemplo (dominio público, Wikimedia Commons)
+Ordenadas de más fácil a más difícil para un lector/OMR.
+
+01_dvorak_sonatina_op100_tema.jpg  [1920x498]  moderna digital, 1 sistema
+    https://commons.wikimedia.org/wiki/File:Anton%C3%ADn_Dvo%C5%99%C3%A1k_%E2%80%93_Violin_Sonatina_Op._100_%284th_Mov._Theme%29.png
+02_battle_hymn_coro_moderno.jpg  [1920x2715]  moderna digital, coro + letra
+    https://commons.wikimedia.org/wiki/File:7_Battle_Hymn_of_the_Republic.png
+03_schubert_rosamunde_orquesta.jpg  [1920x2526]  moderna digital, partitura orquestal
+    https://commons.wikimedia.org/wiki/File:Franz_Schubert_%E2%80%93_Incidental_Music_to_%27Rosamunde%27_%E2%80%93_1st_Entr%27acte.png
+04_himno_rusia_coro_piano.jpg  [900x1432]  moderna, densa, letra cirílica
+    https://commons.wikimedia.org/wiki/File:Hymn_of_Russia_sheet_music_2001.png
+05_deep_river_voz_piano.jpg  [1298x1730]  impresa 1917, papel amarillento
+    https://commons.wikimedia.org/wiki/File:Deep_River_sheet_music_page_one.jpg
+06_banks_of_the_wabash_estribillo.jpg  [1165x1528]  impresa 1897, papel amarillento
+    https://commons.wikimedia.org/wiki/File:On_the_Banks_of_the_Wabash%2C_Far_Away%2C_chorus_sheet_music.jpg
+07_the_shining_shore_himno.jpg  [924x1404]  himnario, 4 voces
+    https://commons.wikimedia.org/wiki/File:The_Shining_Shore_hymn.png
+08_hold_the_fort_p2.jpg  [1912x2088]  escaneo s.XIX
+    https://commons.wikimedia.org/wiki/File:Hold_the_Fort_original_sheet_music_p2_%28Hold_the_Fort%21%2C_Scheips%29.jpg
+09_twilight_reverie_vals_p2.jpg  [1242x1793]  escaneo gris, piano/banjo
+    https://commons.wikimedia.org/wiki/File:Twilight_Reverie_waltz_sheet_music_2nd_page_from_Crescendo_February_1910_By_Frederick_J_Bacon.jpg
+10_put_your_trolley_p6.jpg  [1583x2058]  escaneo, voz + piano
+    https://commons.wikimedia.org/wiki/File:Put_Your_Trolley_on_the_Sky_-_DPLA_-_009a0a4f0f651939ae7272eb536276b7_%28page_6%29.jpg
+11_april_fool_pranks_p3.jpg  [1920x2527]  escaneo con bordes y sombra
+    https://commons.wikimedia.org/wiki/File:April_Fool_Pranks_sheet_music_-_DPLA_-_bcd32474fedf5fdc26b24c42e2da99ca_%28page_3%29.jpg
+12_our_toledo_p3.jpg  [1920x2421]  escaneo amarillento, voz + piano
+    https://commons.wikimedia.org/wiki/File:Our_Toledo_-_the_official_song_of_the_city_of_Toledo%2C_sheet_music_-_DPLA_-_b717adf2ce31e9a4bee7f0e767d45d5c_%28page_3%29.jpg
+13_womans_rights_waltz_1853_p2.jpg  [1920x2572]  escaneo gris, piano 1853
+    https://commons.wikimedia.org/wiki/File:Woman%27s_Right%27s_Convention_Waltz%2C_page_2_1853_01.tif
+14_commodore_perry_p2.jpg  [1920x2546]  escaneo oscuro, bajo contraste
+    https://commons.wikimedia.org/wiki/File:%22The_Death_of_Commodore_O._H._Perry%22_Sheet_Music_-_DPLA_-_53772ef497a48083d411b9d79e711755_%28page_2%29.jpg
+15_kings_breakfast_p2_ilustrada.jpg  [1833x2975]  con ilustraciones entre pentagramas
+    https://commons.wikimedia.org/wiki/File:The_Kings_Breakfast_-_sheet_music_002.png
+16_hino_a_bandeira_brasil.jpg  [1184x1600]  con cabecera ilustrada
+    https://commons.wikimedia.org/wiki/File:Partitura_hino_%C3%A0_bandeira.png
+17_binet_valse_elegante_4manos.jpg  [1920x2450]  escaneo BnF con margen negro
+    https://commons.wikimedia.org/wiki/File:Valse_%C3%A9l%C3%A9gante_-_pour_piano_-_op._61_%28Ed._pour_piano_%C3%A0_4_mains%29_-_par_Fr%C3%A9d%C3%A9ric_Binet_-_btv1b90754999_%2815_of_18%29.jpg
+18_la_ruche_estudio_violin.jpg  [1920x2545]  un solo pentagrama, muchas líneas
+    https://commons.wikimedia.org/wiki/File:La_Ruche%2C_60_%C3%A9tudes_nouvelles_en_2_parties_pour_violon_seul%2C_1ere_partie%2C_30_%C3%A9tudes_faciles_et_progressives_-_bpt6k11636551_%2848_of_86%29.jpg
+19_bazille_capitaine_henriot.jpg  [1920x2809]  canto + piano, s.XIX
+    https://commons.wikimedia.org/wiki/File:Le_Capitaine_Henriot%2C_op%C3%A9ra_comique_en_3_actes%2C_po%C3%A8me_de_MM_Victorien_Sardou_et_G._Va%C3%ABz%2C_partition_r%C3%A9duite_pour_piano_et_chant_par_Bazille_-_bpt6k1184792h_%28089_of_295%29.jpg
+20_il_primo_giorno_felice.jpg  [1920x2837]  canto + piano, muy clara
+    https://commons.wikimedia.org/wiki/File:Il_Primo_giorno_felice%2C_opera_semi_seria_in_3_atti_di_Dennery_e_Cormon._Traduzione_italiana_di_A._de_Lauzi%C3%A8res%2C_recitativi_di_E._M._Partitura_piano_e_canto%2C_reduzione_per_piano_di_A._Bazille_-_bpt6k1182033m_%28043_of_259%29.jpg
+21_bach_jc_sonata_op16.jpg  [1920x2337]  grabado s.XVIII, página curvada
+    https://commons.wikimedia.org/wiki/File:Quatre_Sonates_et_deux_duos_pour_le_clavecin_ou_le_forte-piano_compos%C3%A9es_par_Mr_Bach._%C5%92uvre_XVI_-_btv1b108779968_%2820_of_34%29.jpg
+22_handel_rinaldo_1711.jpg  [1920x2709]  grabado s.XVIII, claves antiguas
+    https://commons.wikimedia.org/wiki/File:Rinaldo%2C_an_opera_as_it_is_perform%27d_at_the_Kings_theatre_in_the_Hay-Market..._-_btv1b10881331h_%2830_of_79%29.jpg
+23_bach_wtc2_fuga_lab.jpg  [1251x1979]  copia manuscrita antigua
+    https://commons.wikimedia.org/wiki/File:DwtkII-as-dur-fuga.jpg
+24_scarlatti_k541_manuscrito.jpg  [1021x722]  manuscrito s.XVIII, apaisado
+    https://commons.wikimedia.org/wiki/File:Scarlatti%2C_Sonate_K._541_-_ms._Parme_XV%2C28.jpg
+25_mozart_oca_del_cairo_autografo.jpg  [1920x1396]  autógrafo, caso muy difícil
+    https://commons.wikimedia.org/wiki/File:Mozart_-_L%27oca_del_Cairo_K_422_-_autographe_f._1r.png
+
+Licencia: dominio público (según Wikimedia Commons). Imágenes reescaladas a ~1800 px de ancho.
