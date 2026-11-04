@@ -7,6 +7,8 @@ import { deleteWork, listWorks, updateWorkMeta, type WorkMeta } from '../db/repo
 import { ImageDecodeError } from '../import/images'
 import { importPdf, importPhoto, isPdf, type ImportKind } from '../import/importer'
 import type { Work } from '../model/types'
+import { ExportDialog } from '../export/ExportDialog'
+import { kickQueue, warmUpPipeline } from '../process/processor'
 import { MetadataDialog } from './MetadataDialog'
 import { searchWorks, titleFromFilename } from './search'
 import { WorkCard } from './WorkCard'
@@ -26,6 +28,7 @@ export function LibraryScreen() {
   const [query, setQuery] = useState('')
   const [pending, setPending] = useState<PendingImport | null>(null)
   const [editing, setEditing] = useState<Work | null>(null)
+  const [exporting, setExporting] = useState<Work | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,7 +37,10 @@ export function LibraryScreen() {
   const onFile = (kind: ImportKind) => (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = '' // allow picking the same file again
-    if (file) setPending({ kind, file })
+    if (!file) return
+    setPending({ kind, file })
+    // Photos need OpenCV: load it while the user types the title.
+    if (!isPdf(file)) warmUpPipeline()
   }
 
   const runImport = async (meta: WorkMeta) => {
@@ -46,6 +52,7 @@ export function LibraryScreen() {
     try {
       if (isPdf(file)) await importPdf(file, meta)
       else await importPhoto(file, meta)
+      void kickQueue()
     } catch (err) {
       console.error('import failed:', describeError(err))
       setError(
@@ -120,7 +127,7 @@ export function LibraryScreen() {
 
       <ul className="grid">
         {visible.map((w) => (
-          <WorkCard key={w.id} work={w} onEditMeta={setEditing} onDelete={onDelete} />
+          <WorkCard key={w.id} work={w} onEditMeta={setEditing} onDelete={onDelete} onExport={setExporting} />
         ))}
       </ul>
 
@@ -143,6 +150,7 @@ export function LibraryScreen() {
           onCancel={() => setEditing(null)}
         />
       )}
+      {exporting && <ExportDialog work={exporting} onClose={() => setExporting(null)} />}
       {busy && (
         <div className="backdrop busy" role="status" aria-live="polite">
           <div className="spinner" />

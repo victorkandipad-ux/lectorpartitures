@@ -1,3 +1,4 @@
+import { DiagnosticsScreen } from '../debug/DiagnosticsScreen'
 import { LibraryScreen } from '../library/LibraryScreen'
 import { SettingsScreen } from '../settings/SettingsScreen'
 import { WorkScreen } from '../work/WorkScreen'
@@ -8,6 +9,9 @@ import { useAppStore } from './store'
 function Routes({ path }: { path: string }) {
   if (matchRoute('/', path)) return <LibraryScreen />
   if (matchRoute('/ajustes', path)) return <SettingsScreen />
+  if (matchRoute('/diag', path)) return <DiagnosticsScreen />
+  const diag = matchRoute('/diag/:pageId', path)
+  if (diag) return <DiagnosticsScreen key={diag.pageId} pageId={diag.pageId} />
   const work = matchRoute('/obra/:id', path)
   if (work) return <WorkScreen key={work.id} id={work.id} />
   return (

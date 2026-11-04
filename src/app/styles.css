@@ -132,3 +132,29 @@ button { font: inherit; color: inherit; }
 .pages { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
 .page-frame { width: 100%; background: #fff; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
 .page-frame img, .page-frame canvas { width: 100%; height: 100%; display: block; object-fit: contain; }
+
+/* Phase 3: processing state, clean/original toggle, export, diagnostics */
+.card-status { font-size: 13px; color: var(--accent); }
+.error-text { color: #d33; }
+.text-btn { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; padding: 10px 4px; min-height: 44px; cursor: pointer; }
+.text-btn:disabled { opacity: .4; }
+.segmented { display: inline-flex; align-self: center; margin: 4px auto 0; border-radius: 10px; padding: 2px; background: rgba(127,127,127,.18); }
+.segmented button { border: 0; background: none; font: inherit; padding: 6px 16px; border-radius: 8px; color: inherit; min-height: 36px; }
+.segmented button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.15); font-weight: 600; }
+.work-screen { display: flex; flex-direction: column; }
+.page-item { display: flex; flex-direction: column; gap: 4px; }
+.page-note { margin: 0; font-size: 13px; display: flex; gap: 12px; opacity: .8; }
+a.primary-btn { text-decoration: none; display: grid; place-items: center; }
+.spinner.small { display: inline-block; width: 16px; height: 16px; border-width: 2px; border-color: rgba(127,127,127,.3); border-top-color: currentColor; vertical-align: -3px; }
+.export-status { display: flex; align-items: center; gap: 8px; }
+.diag-total { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.diag-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 16px; }
+.diag-steps h3 { margin: 0 0 4px; font-size: 16px; }
+.diag-steps small { font-weight: 400; opacity: .7; }
+.diag-steps dl { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 6px; font-size: 13px; }
+.diag-steps dl div { display: flex; gap: 4px; }
+.diag-steps dt { opacity: .7; }
+.diag-steps dd { margin: 0; font-variant-numeric: tabular-nums; }
+.diag-image { width: 100%; height: auto; background: #fff; border-radius: 4px; image-rendering: auto; }
+.diag-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.diag-list li { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }

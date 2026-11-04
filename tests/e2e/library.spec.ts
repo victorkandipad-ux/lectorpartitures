@@ -46,6 +46,7 @@ test('imports a photo from the gallery and opens it', async ({ page }) => {
 
   await card.getByRole('button', { name: /Abrir: Sonatina/ }).click()
   await expect(page).toHaveURL(/#\/obra\//)
+  await page.getByRole('button', { name: 'Original' }).click()
   const img = page.getByTestId('page').locator('img')
   await expect(img).toBeVisible()
   expect(await img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(1920)
@@ -61,6 +62,7 @@ test('imports a 2-page PDF and renders both pages', async ({ page }) => {
   await expect(card).toContainText('estudio') // title defaults to the file name
   await expect(card).toContainText('2 páginas')
   await card.getByRole('button', { name: /Abrir/ }).click()
+  await page.getByRole('button', { name: 'Original' }).click()
   const pages = page.getByTestId('page')
   await expect(pages).toHaveCount(2)
   await expect(pages.nth(0).locator('canvas')).toBeVisible({ timeout: 15_000 })

@@ -12,12 +12,17 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "assets": "pwa-assets-generator"
+    "assets": "pwa-assets-generator",
+    "bench:preview": "vitest run -c vitest.bench.config.ts preview"
   },
   "dependencies": {
+    "@techstark/opencv-js": "^5.0.0-release.1",
+    "comlink": "^4.4.2",
     "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",
     "eruda": "^3.4.3",
+    "fflate": "^0.8.3",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.5.438",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -33,8 +38,8 @@
     "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-react": "^6.2.1",
     "fake-indexeddb": "^6.2.7",
+    "jpeg-js": "^0.4.4",
     "jsdom": "^30.1.3",
-    "pdf-lib": "^1.17.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vite-plugin-pwa": "^2.0.0",

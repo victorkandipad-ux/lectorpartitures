@@ -34,6 +34,11 @@ export function SettingsScreen() {
           />
         </label>
         <p className="hint">{es.settings.diagnosticsHint}</p>
+        {diag && (
+          <a className="row" href="#/diag">
+            {es.diag.title} ›
+          </a>
+        )}
       </section>
       {storage && (
         <section className="sheet" style={{ marginTop: 12 }}>

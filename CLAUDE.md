@@ -18,9 +18,18 @@ Plan completo y fases: ver historial de commits y la sección «Fases» abajo.
 - Pipeline: análisis a ~2000 px → mapa geométrico compuesto (perspectiva ∘ deskew ∘ dewarp) aplicado
   una sola vez a resolución completa → iluminación (fondo por closing) → Sauvola con integrales →
   limpieza por componentes conexas → estructura (run-lengths → staves → systems → barlines).
-- OpenCV.js sólo para primitivas (Canny, contornos, warp, remap, morfología, blur, resize);
-  algoritmos OMR en TS puro sobre `Uint8Array` (testeables en Node).
-  Build reducida de OpenCV: pendiente (F7, vía GitHub Actions + emsdk); hoy build preconstruida.
+- OpenCV.js (`@techstark/opencv-js`, ~13 MB) sólo para la detección de página en fotos (blur, Canny,
+  contornos, approxPolyDP). Se carga perezosamente en el worker con `fetch` + evaluación CommonJS
+  (un `import()` dinámico rompe: su export es una Promise). En tests: `tests/support/opencv-node.ts`.
+  Todo lo demás (resize, remapeo, fondo, Sauvola, run-lengths, componentes) en TS puro sobre
+  `Uint8Array` (`src/pipeline/`, testeable en Node). Build reducida de OpenCV: pendiente (F7).
+- Remapeo compuesto sin mapas completos: la cadena se evalúa por píxel en una sola pasada que además
+  divide por el fondo (iluminación). Sauvola con integrales por bandas (memoria O(ancho × banda)).
+- Resolución de salida de fotos: se estima el tamaño físico por la interlínea (1,75 mm típica) → 300 ppp,
+  máx. 2× la fuente y los topes de canvas. PDF: tamaño de página original.
+- Procesado: cola en segundo plano (`src/process/processor.ts`) que procesa toda página con
+  `pipelineVersion < PIPELINE_VERSION` (`src/pipeline/version.ts`; subirla reprocesa todo).
+  Si el worker no tiene `OffscreenCanvas`, el hilo principal decodifica a gris y lo transfiere.
 - PDF vectorial: se omite la limpieza agresiva; sólo umbral + estructura.
 - Datos: `page.auto` (pipeline) + `page.overrides` (ediciones del usuario, coords normalizadas 0–1).
   Estructura efectiva = `applyOverrides(auto, overrides)`. Reprocesar nunca toca `overrides`.
@@ -28,8 +37,11 @@ Plan completo y fases: ver historial de commits y la sección «Fases» abajo.
   ítems `{srcRect → dstRect}`; renderer virtualizado con caché LRU de `ImageBitmap`.
   Ancla de lectura `{pageId, srcX, srcY}` conservada en giro, cambio de modo y zoom.
   Pellizco: `transform: scale()` en vivo + re-layout throttled por rAF; re-rasterizado al soltar.
-- Export PDF: XObject DeviceGray 1 bit + Flate (pdf-lib a bajo nivel, porque `embedPng` re-codifica a RGB).
-  Almacenamiento de la página limpia: PNG 1 bit (UPNG).
+- Página limpia: PNG gris 1 bit con codificador propio (`src/export/png1bit.ts`, fflate); UPNG exigiría
+  una copia RGBA de 4 B/píxel. Export PDF: el IDAT de ese PNG se incrusta tal cual como XObject
+  DeviceGray 1 bit (FlateDecode + Predictor 15) con pdf-lib a bajo nivel: sin recomprimir.
+- Compartir: primero se genera el PDF y luego el usuario pulsa «Compartir» (iOS exige un gesto reciente
+  para `navigator.share`).
 - Hosting: GitHub Pages; `base` de Vite = `/<repo>/` (variable `BASE_PATH` en Actions); manifest con
   `scope`/`start_url` relativos.
 
@@ -52,12 +64,14 @@ Measure { id, xStart, xEnd, barline, confidence, symbols?: MusicSymbol[] }   // 
 
 ## Comandos
 - `npm run dev` (vite --host) · `npm run tunnel` (cloudflared → HTTPS para iPhone)
-- `npm test` (Vitest) · `npm run bench` (métricas de robustez vs `bench/baseline.json`)
+- `npm test` (Vitest) · `npm run bench` (métricas de robustez vs `bench/baseline.json`, F4)
+- `npm run bench:preview` (limpia las 25 fixtures → `bench/results/preview/*.png` + `log.txt`; `ONLY=21` filtra)
 - `npm run e2e` (Playwright WebKit, emulación iPhone)
 - Deploy: push a `main` → GitHub Actions → Pages.
 
 ## Depuración en iPhone
-- Ajustes → «Modo diagnóstico» (en dev, siempre activo): carga Eruda y `#/diag` con los pasos del pipeline.
+- Ajustes → «Modo diagnóstico» (en dev, siempre activo): carga Eruda y `#/diag` (o «Diagnóstico» bajo
+  cada página) con imágenes, tiempos y medidas de cada paso del pipeline.
 
 ## Fases
 1. Scaffold PWA + deploy · 2. Importación + biblioteca · 3. Limpieza + export PDF ·

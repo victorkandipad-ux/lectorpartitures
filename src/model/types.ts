@@ -85,6 +85,17 @@ export interface PageStructure {
 /** User edits, stored separately from automatic results (applied in phase 5). */
 export type EditOp = { op: string; [k: string]: unknown }
 
+/** Measurements of the last pipeline run (diagnostics and later phases). */
+export interface PageAnalysis {
+  staffSpace: number | null
+  lineThickness: number | null
+  staffConfidence: number
+  skewDeg: number
+  dewarpMaxPx: number
+  docConfidence: number | null
+  ms: number
+}
+
 export interface PdfPageRef {
   /** 0-based page index inside the work's PDF. */
   index: number
@@ -100,12 +111,23 @@ export interface Page {
   originalBlobId?: string
   pdfPage?: PdfPageRef
   isVector?: boolean
+  /** User-corrected page corners, normalized 0–1 in the source image (input override, phase 5). */
   corners?: Quad
+  /** Corners found by the pipeline, normalized 0–1 (null = whole image). */
+  detectedCorners?: Quad | null
   /** Size of the source raster (photo) or of the nominal 300 dpi rendering (PDF). */
   width: number
   height: number
   dpi?: number
+  /** Clean page: 1-bit PNG. */
   cleanBlobId?: string
+  cleanWidth?: number
+  cleanHeight?: number
+  /** Resolution of the clean page (photos: estimated from the staff space). */
+  cleanDpi?: number
+  analysis?: PageAnalysis
+  /** Last pipeline failure (cleared on success). */
+  pipelineError?: string
   auto: PageStructure | null
   overrides: EditOp[]
   confidence: number | null

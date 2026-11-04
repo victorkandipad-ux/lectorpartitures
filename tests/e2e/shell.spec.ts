@@ -54,6 +54,9 @@ test('service worker controls the page and precaches the shell', async ({ page }
     els.map((e) => new URL((e as HTMLScriptElement).src).pathname),
   )
   for (const s of scripts) expect(cached.some((u) => u.split('?')[0] === s)).toBe(true)
+  // Cleaning works offline: the pipeline worker and OpenCV are precached too.
+  expect(cached.some((u) => /\/assets\/pipeline\.worker-[\w-]+\.js$/.test(u))).toBe(true)
+  expect(cached.some((u) => /\/assets\/opencv-[\w-]+\.js$/.test(u))).toBe(true)
 })
 
 // Playwright's WebKit cannot navigate offline through a service worker ("internal error"),

@@ -110,3 +110,35 @@ export async function inspectPdf(data: ArrayBuffer): Promise<PdfImportInfo> {
     await close()
   }
 }
+
+/**
+ * A page is treated as a scan when it paints a few raster images (one per scanned page, sometimes
+ * split in strips). Vector engravings paint none, or many tiny ones (Type3 bitmap glyphs, logos).
+ */
+export async function isVectorPage(doc: PDFDocumentProxy, index: number): Promise<boolean> {
+  const pdfjs = await loadPdfjs()
+  const page = await doc.getPage(index + 1)
+  try {
+    const ops = await page.getOperatorList()
+    const O = pdfjs.OPS as Record<string, number>
+    const imageOps = new Set(
+      [
+        'paintImageXObject',
+        'paintInlineImageXObject',
+        'paintImageMaskXObject',
+        'paintImageXObjectRepeat',
+        'paintImageMaskXObjectRepeat',
+        'paintImageMaskXObjectGroup',
+        'paintInlineImageXObjectGroup',
+        'paintJpegXObject',
+      ]
+        .map((n) => O[n])
+        .filter((v) => v !== undefined),
+    )
+    let images = 0
+    for (const fn of ops.fnArray) if (imageOps.has(fn)) images++
+    return images === 0 || images > 8
+  } finally {
+    page.cleanup()
+  }
+}

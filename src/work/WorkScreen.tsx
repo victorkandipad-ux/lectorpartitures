@@ -1,4 +1,4 @@
-// Temporary work view (phase 2): plain vertical list of the original pages.
+// Temporary work view (phases 2–3): vertical list of the clean pages (or the originals).
 // Replaced by the virtualized 3-mode viewer in phase 6.
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
@@ -8,7 +8,24 @@ import { useBlobUrl } from '../app/hooks'
 import { db } from '../db/schema'
 import { getBlob, getPages } from '../db/repo'
 import { openPdf, renderPdfPage, type PdfHandle } from '../import/pdf'
+import { ExportDialog } from '../export/ExportDialog'
 import type { Page } from '../model/types'
+import { PIPELINE_VERSION } from '../pipeline/version'
+import { isDiagnosticsEnabled } from '../settings/settings'
+
+function CleanPage({ page }: { page: Page }) {
+  const url = useBlobUrl(page.cleanBlobId)
+  return (
+    <div
+      className="page-frame"
+      style={{ aspectRatio: `${page.cleanWidth} / ${page.cleanHeight}` }}
+      data-testid="page"
+      data-clean="true"
+    >
+      {url && <img src={url} alt="" draggable={false} />}
+    </div>
+  )
+}
 
 function PhotoPage({ page }: { page: Page }) {
   const url = useBlobUrl(page.originalBlobId)
@@ -67,6 +84,9 @@ export function WorkScreen({ id }: { id: string }) {
   const work = useLiveQuery(async () => (await db.works.get(id)) ?? null, [id])
   const pages = useLiveQuery(() => getPages(db, id), [id])
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null)
+  const [showOriginal, setShowOriginal] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const diagnostics = isDiagnosticsEnabled()
 
   useEffect(() => {
     if (!work?.pdfBlobId) return
@@ -102,11 +122,39 @@ export function WorkScreen({ id }: { id: string }) {
           ‹
         </button>
         <h1 className="work-title">{work?.title || es.library.untitled}</h1>
-        <span style={{ width: 44 }} />
+        <button className="text-btn" onClick={() => setExporting(true)} disabled={!work}>
+          {es.work.export}
+        </button>
       </header>
-      <div className="pages">
-        {pages?.map((p) => (p.pdfPage ? <PdfPage key={p.id} page={p} doc={doc} /> : <PhotoPage key={p.id} page={p} />))}
+      <div className="segmented" role="group">
+        <button aria-pressed={!showOriginal} onClick={() => setShowOriginal(false)}>
+          {es.work.showClean}
+        </button>
+        <button aria-pressed={showOriginal} onClick={() => setShowOriginal(true)}>
+          {es.work.showOriginal}
+        </button>
       </div>
+      <div className="pages">
+        {pages?.map((p) => (
+          <section key={p.id} className="page-item">
+            {!showOriginal && p.cleanBlobId ? (
+              <CleanPage page={p} />
+            ) : p.pdfPage ? (
+              <PdfPage page={p} doc={doc} />
+            ) : (
+              <PhotoPage page={p} />
+            )}
+            {(p.pipelineVersion < PIPELINE_VERSION || p.pipelineError || diagnostics) && (
+              <p className="page-note">
+                {p.pipelineVersion < PIPELINE_VERSION && es.processing.pending}
+                {p.pipelineError && <span className="error-text">{es.processing.failed}</span>}
+                {diagnostics && <a href={`#/diag/${p.id}`}>{es.work.diagnostics}</a>}
+              </p>
+            )}
+          </section>
+        ))}
+      </div>
+      {exporting && work && <ExportDialog work={work} onClose={() => setExporting(false)} />}
     </main>
   )
 }
