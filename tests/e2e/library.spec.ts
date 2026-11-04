@@ -101,3 +101,17 @@ test('shows a clear error for an unreadable image', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('No se ha podido leer la imagen')
   await expect(page.getByTestId('work-card')).toHaveCount(0)
 })
+
+test('tapping each import button opens the native file picker', async ({ page }) => {
+  for (const [name, accept, capture] of [
+    ['Cámara', 'image/*', 'environment'],
+    ['Galería', 'image/*', null],
+    ['PDF', 'application/pdf,.pdf', null],
+  ] as const) {
+    const chooserPromise = page.waitForEvent('filechooser', { timeout: 5000 })
+    await page.getByText(name, { exact: true }).tap()
+    const chooser = await chooserPromise
+    expect(await chooser.element().getAttribute('accept')).toBe(accept)
+    expect(await chooser.element().getAttribute('capture')).toBe(capture)
+  }
+})

@@ -2,10 +2,22 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { existsSync, readFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 import { pdfjsAssets } from './vite-plugins/pdfjs-assets'
 
 // On GitHub Pages the app lives under /<repo>/. CI sets BASE_PATH; locally it is '/'.
 const base = process.env.BASE_PATH ?? '/'
+
+// Version shown in Settings: package version + commit, to tell which build a device is running.
+function gitSha(): string {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 7)
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch {
+    return 'dev'
+  }
+}
+const appVersion = `${process.env.npm_package_version ?? '0.0.0'}+${gitSha()}`
 
 // Optional local HTTPS with mkcert certificates (see README). Not committed.
 const https = existsSync('certs/key.pem') && existsSync('certs/cert.pem')
@@ -50,7 +62,7 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
-  define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? 'dev') },
+  define: { __APP_VERSION__: JSON.stringify(appVersion) },
   server: { https, allowedHosts: ['.trycloudflare.com'] },
   preview: { https, allowedHosts: ['.trycloudflare.com'] },
   worker: { format: 'es' },

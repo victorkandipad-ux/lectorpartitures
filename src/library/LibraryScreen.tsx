@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useMemo, useState, type ChangeEvent } from 'react'
 import { es } from '../app/i18n/es'
 import { navigate } from '../app/router'
 import { db } from '../db/schema'
@@ -28,9 +28,6 @@ export function LibraryScreen() {
   const [editing, setEditing] = useState<Work | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const cameraRef = useRef<HTMLInputElement>(null)
-  const galleryRef = useRef<HTMLInputElement>(null)
-  const pdfRef = useRef<HTMLInputElement>(null)
 
   const visible = useMemo(() => searchWorks(works ?? [], query), [works, query])
 
@@ -76,20 +73,24 @@ export function LibraryScreen() {
         </button>
       </header>
 
+      {/*
+        Each button is a <label> wrapping its file input: the OS opens the picker natively on tap.
+        Calling .click() on a display:none input is silently ignored by some iOS versions.
+      */}
       <div className="import-bar">
-        <button onClick={() => cameraRef.current?.click()} disabled={busy}>
+        <label className={`import-btn${busy ? ' disabled' : ''}`}>
           {es.import.camera}
-        </button>
-        <button onClick={() => galleryRef.current?.click()} disabled={busy}>
+          {/* Native camera: full resolution and autofocus. */}
+          <input data-testid="input-camera" className="visually-hidden" type="file" accept="image/*" capture="environment" disabled={busy} onChange={onFile('camera')} />
+        </label>
+        <label className={`import-btn${busy ? ' disabled' : ''}`}>
           {es.import.gallery}
-        </button>
-        <button onClick={() => pdfRef.current?.click()} disabled={busy}>
+          <input data-testid="input-gallery" className="visually-hidden" type="file" accept="image/*" disabled={busy} onChange={onFile('gallery')} />
+        </label>
+        <label className={`import-btn${busy ? ' disabled' : ''}`}>
           {es.import.pdf}
-        </button>
-        {/* Native camera: full resolution and autofocus. */}
-        <input ref={cameraRef} data-testid="input-camera" type="file" accept="image/*" capture="environment" hidden onChange={onFile('camera')} />
-        <input ref={galleryRef} data-testid="input-gallery" type="file" accept="image/*" hidden onChange={onFile('gallery')} />
-        <input ref={pdfRef} data-testid="input-pdf" type="file" accept="application/pdf,.pdf" hidden onChange={onFile('pdf')} />
+          <input data-testid="input-pdf" className="visually-hidden" type="file" accept="application/pdf,.pdf" disabled={busy} onChange={onFile('pdf')} />
+        </label>
       </div>
 
       {error && (
