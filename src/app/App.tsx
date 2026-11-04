@@ -1,5 +1,6 @@
 import { LibraryScreen } from '../library/LibraryScreen'
 import { SettingsScreen } from '../settings/SettingsScreen'
+import { WorkScreen } from '../work/WorkScreen'
 import { es } from './i18n/es'
 import { matchRoute, useHashPath } from './router'
 import { useAppStore } from './store'
@@ -7,6 +8,8 @@ import { useAppStore } from './store'
 function Routes({ path }: { path: string }) {
   if (matchRoute('/', path)) return <LibraryScreen />
   if (matchRoute('/ajustes', path)) return <SettingsScreen />
+  const work = matchRoute('/obra/:id', path)
+  if (work) return <WorkScreen key={work.id} id={work.id} />
   return (
     <main className="screen">
       <p>{es.notFound}</p>

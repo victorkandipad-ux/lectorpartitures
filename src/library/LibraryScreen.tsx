@@ -1,7 +1,69 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { es } from '../app/i18n/es'
 import { navigate } from '../app/router'
+import { db } from '../db/schema'
+import { deleteWork, listWorks, updateWorkMeta, type WorkMeta } from '../db/repo'
+import { ImageDecodeError } from '../import/images'
+import { importPdf, importPhoto, isPdf, type ImportKind } from '../import/importer'
+import type { Work } from '../model/types'
+import { MetadataDialog } from './MetadataDialog'
+import { searchWorks, titleFromFilename } from './search'
+import { WorkCard } from './WorkCard'
+
+/** Readable error text for the Eruda console (minified errors are otherwise opaque). */
+function describeError(err: unknown): string {
+  return err instanceof Error ? `${err.name}: ${err.message}\n${err.stack ?? ''}` : String(err)
+}
+
+interface PendingImport {
+  kind: ImportKind
+  file: File
+}
 
 export function LibraryScreen() {
+  const works = useLiveQuery(() => listWorks(db), [])
+  const [query, setQuery] = useState('')
+  const [pending, setPending] = useState<PendingImport | null>(null)
+  const [editing, setEditing] = useState<Work | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
+  const pdfRef = useRef<HTMLInputElement>(null)
+
+  const visible = useMemo(() => searchWorks(works ?? [], query), [works, query])
+
+  const onFile = (kind: ImportKind) => (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow picking the same file again
+    if (file) setPending({ kind, file })
+  }
+
+  const runImport = async (meta: WorkMeta) => {
+    if (!pending) return
+    const { file } = pending
+    setPending(null)
+    setBusy(true)
+    setError(null)
+    try {
+      if (isPdf(file)) await importPdf(file, meta)
+      else await importPhoto(file, meta)
+    } catch (err) {
+      console.error('import failed:', describeError(err))
+      setError(
+        err instanceof ImageDecodeError ? es.import.errorImage : isPdf(file) ? es.import.errorPdf : es.import.errorGeneric,
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onDelete = async (w: Work) => {
+    if (!window.confirm(es.work.confirmDelete(w.title || es.library.untitled))) return
+    await deleteWork(db, w.id)
+  }
+
   return (
     <main className="screen">
       <header className="topbar">
@@ -13,15 +75,79 @@ export function LibraryScreen() {
           </svg>
         </button>
       </header>
+
       <div className="import-bar">
-        <button disabled>{es.import.camera}</button>
-        <button disabled>{es.import.gallery}</button>
-        <button disabled>{es.import.pdf}</button>
+        <button onClick={() => cameraRef.current?.click()} disabled={busy}>
+          {es.import.camera}
+        </button>
+        <button onClick={() => galleryRef.current?.click()} disabled={busy}>
+          {es.import.gallery}
+        </button>
+        <button onClick={() => pdfRef.current?.click()} disabled={busy}>
+          {es.import.pdf}
+        </button>
+        {/* Native camera: full resolution and autofocus. */}
+        <input ref={cameraRef} data-testid="input-camera" type="file" accept="image/*" capture="environment" hidden onChange={onFile('camera')} />
+        <input ref={galleryRef} data-testid="input-gallery" type="file" accept="image/*" hidden onChange={onFile('gallery')} />
+        <input ref={pdfRef} data-testid="input-pdf" type="file" accept="application/pdf,.pdf" hidden onChange={onFile('pdf')} />
       </div>
-      <div className="empty" data-testid="library-empty">
-        <strong>{es.library.empty}</strong>
-        {es.library.emptyHint}
-      </div>
+
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {works && works.length > 0 && (
+        <input
+          className="search"
+          type="search"
+          placeholder={es.library.search}
+          aria-label={es.library.search}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      )}
+
+      {works && works.length === 0 && (
+        <div className="empty" data-testid="library-empty">
+          <strong>{es.library.empty}</strong>
+          {es.library.emptyHint}
+        </div>
+      )}
+      {works && works.length > 0 && visible.length === 0 && <p className="empty">{es.library.noResults}</p>}
+
+      <ul className="grid">
+        {visible.map((w) => (
+          <WorkCard key={w.id} work={w} onEditMeta={setEditing} onDelete={onDelete} />
+        ))}
+      </ul>
+
+      {pending && (
+        <MetadataDialog
+          heading={es.meta.newTitle}
+          initial={{ title: titleFromFilename(pending.file.name), composer: '', tags: [] }}
+          onSave={runImport}
+          onCancel={() => setPending(null)}
+        />
+      )}
+      {editing && (
+        <MetadataDialog
+          heading={es.meta.editTitle}
+          initial={editing}
+          onSave={async (meta) => {
+            await updateWorkMeta(db, editing.id, meta)
+            setEditing(null)
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      )}
+      {busy && (
+        <div className="backdrop busy" role="status" aria-live="polite">
+          <div className="spinner" />
+          <span>{es.import.importing}</span>
+        </div>
+      )}
     </main>
   )
 }

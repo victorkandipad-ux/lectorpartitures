@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
 import { setupServiceWorker } from './app/sw'
 import { maybeLoadEruda } from './debug/eruda'
+import { requestPersistentStorage } from './db/schema'
 import './app/styles.css'
 
 // iOS ignores user-scalable=no: block native page pinch-zoom; the viewer implements its own.
@@ -12,6 +13,7 @@ for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) {
 
 void maybeLoadEruda()
 setupServiceWorker()
+void requestPersistentStorage()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

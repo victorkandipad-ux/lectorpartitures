@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { existsSync, readFileSync } from 'node:fs'
+import { pdfjsAssets } from './vite-plugins/pdfjs-assets'
 
 // On GitHub Pages the app lives under /<repo>/. CI sets BASE_PATH; locally it is '/'.
 const base = process.env.BASE_PATH ?? '/'
@@ -15,6 +16,7 @@ export default defineConfig({
   base,
   plugins: [
     react(),
+    pdfjsAssets(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false, // registered manually in src/app/sw.ts
@@ -37,7 +39,7 @@ export default defineConfig({
         // OpenCV WASM bundle + pdf.js worker are big; they must be precached for offline use.
         maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
         // manifest.webmanifest is added by the plugin itself (listing it twice makes Workbox throw).
-        globPatterns: ['**/*.{js,mjs,css,html,wasm,svg,png,ico,json}'],
+        globPatterns: ['**/*.{js,mjs,css,html,wasm,svg,png,ico,json,bcmap,pfb,ttf,icc}'],
         globIgnores: ['apple-splash-*'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
@@ -52,5 +54,5 @@ export default defineConfig({
   server: { https, allowedHosts: ['.trycloudflare.com'] },
   preview: { https, allowedHosts: ['.trycloudflare.com'] },
   worker: { format: 'es' },
-  build: { target: 'es2022', sourcemap: true },
+  build: { target: 'es2022', sourcemap: true, minify: process.env.NOMINIFY ? false : 'oxc' },
 })

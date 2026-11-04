@@ -15,7 +15,10 @@
     "assets": "pwa-assets-generator"
   },
   "dependencies": {
+    "dexie": "^4.4.7",
+    "dexie-react-hooks": "^4.4.0",
     "eruda": "^3.4.3",
+    "pdfjs-dist": "^6.5.438",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "workbox-window": "^7.4.1",
@@ -29,7 +32,9 @@
     "@types/react-dom": "^19.3.0",
     "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-react": "^6.2.1",
+    "fake-indexeddb": "^6.2.7",
     "jsdom": "^30.1.3",
+    "pdf-lib": "^1.17.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vite-plugin-pwa": "^2.0.0",

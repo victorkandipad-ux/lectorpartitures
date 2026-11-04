@@ -66,3 +66,64 @@ button { font: inherit; color: inherit; }
 .sheet { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
 .hint { color: var(--muted); font-size: 13px; }
+
+/* ---- Library ---- */
+.search {
+  width: 100%; min-height: 44px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink); padding: 0 14px; font-size: 16px; margin-bottom: 14px;
+  -webkit-user-select: text; user-select: text;
+}
+.grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.card-main { display: flex; gap: 12px; width: 100%; padding: 10px 52px 10px 10px; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.card-thumb { flex: 0 0 72px; height: 96px; border-radius: 8px; background: #fff; overflow: hidden; border: 1px solid var(--border); }
+.card-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.card-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.card-title { font-size: 16px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.card-sub { color: var(--muted); font-size: 13px; }
+.card-more { position: absolute; top: 6px; right: 6px; font-size: 22px; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); }
+.error { background: #fde8e6; color: #8a1c12; padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+
+/* ---- Dialogs ---- */
+.backdrop {
+  position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+@media (min-width: 600px) { .backdrop { align-items: center; } }
+.dialog {
+  width: min(100%, 480px); background: var(--surface); border-radius: 18px 18px 0 0;
+  padding: 18px 16px calc(16px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 12px;
+}
+@media (min-width: 600px) { .dialog { border-radius: 18px; } }
+.dialog h2 { margin: 0 0 4px; font-size: 20px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.field small { color: var(--muted); font-weight: 400; }
+.field input {
+  min-height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg);
+  color: var(--ink); padding: 0 12px; font-size: 16px; -webkit-user-select: text; user-select: text;
+}
+.dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.secondary-btn { min-height: 52px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; font-weight: 600; cursor: pointer; }
+.action-sheet {
+  width: min(100%, 480px); background: var(--surface); border-radius: 18px 18px 0 0;
+  padding: 8px 8px calc(8px + var(--safe-bottom)); display: flex; flex-direction: column;
+}
+@media (min-width: 600px) { .action-sheet { border-radius: 18px; } }
+.action-sheet-title { text-align: center; color: var(--muted); font-size: 13px; margin: 8px 0; }
+.action-sheet button { min-height: 52px; border: 0; border-top: 1px solid var(--border); background: transparent; font-size: 17px; cursor: pointer; }
+.action-sheet button:disabled { color: var(--muted); opacity: 0.6; }
+.action-sheet .danger { color: #d0342c; }
+.action-sheet .cancel { font-weight: 600; }
+.busy { align-items: center; flex-direction: column; gap: 12px; color: #fff; }
+.spinner { width: 36px; height: 36px; border-radius: 50%; border: 4px solid rgba(255,255,255,.3); border-top-color: #fff; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+
+/* ---- Work (temporary viewer) ---- */
+.work-title { font-size: 18px !important; text-align: center; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pages { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.page-frame { width: 100%; background: #fff; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+.page-frame img, .page-frame canvas { width: 100%; height: 100%; display: block; object-fit: contain; }
