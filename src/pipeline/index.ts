@@ -8,13 +8,14 @@ import { type CV } from './cv'
 import { estimateDewarp } from './dewarp'
 import { detectDocument } from './document'
 import { fullQuad, quadSize, remapComposite, type GeometryChain } from './geometry'
-import { binToGrayPreview, grayPreview, resizeArea, type BinImage, type GrayImage } from './image'
+import { binToGrayPreview, boxBlur3, estimateNoise, grayPreview, resizeArea, type BinImage, type GrayImage } from './image'
 import { estimateBackground } from './illumination'
 import { staffMetrics, type StaffMetrics } from './runlength'
 import { sauvola, threshold } from './sauvola'
 import { estimateSkew, rotateBin } from './skew'
 import { denoise } from './denoise'
-import type { Quad } from '../model/types'
+import { detectStructure, type StructureResult } from './structure'
+import type { PageStructure, Quad } from '../model/types'
 
 export { PIPELINE_VERSION } from './version'
 
@@ -57,11 +58,22 @@ export interface PipelineResult {
   staffConfidence: number
   skewDeg: number
   dewarpMaxPx: number
+  /** Staves, systems and measures, in pixels of `clean` (null without staff metrics). */
+  structure: PageStructure | null
+  /** 0–1 confidence of `structure`. */
+  confidence: number
+  needsReview: boolean
   totalMs: number
   steps: DiagStep[]
 }
 
 const PREVIEW_SIDE = 1000
+/** Sensor noise (sigma) above which the image is smoothed before binarizing: specks ruin the run-lengths. */
+const NOISE_LIMIT = 7
+/** Skew-profile sharpness above which a detected page quad is accepted without comparing. */
+const MIN_SHARP_WITH_QUAD = 2
+/** How much sharper the unwarped image must be to discard a detected quad. */
+const WHOLE_PAGE_ADVANTAGE = 1.25
 const odd = (n: number) => (Math.round(n) | 1)
 
 export function runPipeline(input: PipelineInput, cv: CV | null): PipelineResult {
@@ -82,6 +94,8 @@ export function runPipeline(input: PipelineInput, cv: CV | null): PipelineResult
     step('threshold', undefined, () => binToGrayPreview(bin, PREVIEW_SIDE))
     const m = staffMetrics(bin)
     step('staffMetrics', metricsInfo(m))
+    const st = runStructure(bin, m ? m.staffSpace : null, m ? m.lineThickness : null)
+    step('structure', structureInfo(st), () => binToGrayPreview(bin, PREVIEW_SIDE))
     return {
       clean: bin,
       dpi: input.dpi ?? TARGET_DPI,
@@ -92,6 +106,9 @@ export function runPipeline(input: PipelineInput, cv: CV | null): PipelineResult
       staffConfidence: m?.confidence ?? 0,
       skewDeg: 0,
       dewarpMaxPx: 0,
+      structure: st?.structure ?? null,
+      confidence: st?.confidence ?? 0,
+      needsReview: st?.needsReview ?? true,
       totalMs: Math.round(performance.now() - t0),
       steps,
     }
@@ -99,8 +116,11 @@ export function runPipeline(input: PipelineInput, cv: CV | null): PipelineResult
 
   // 1. Analysis image.
   const a = Math.min(1, ANALYSIS_SIDE / Math.max(gray.width, gray.height))
-  const A = a < 1 ? resizeArea(gray, Math.round(gray.width * a), Math.round(gray.height * a)) : gray
-  step('analysis', { width: A.width, height: A.height, scale: a.toFixed(3) }, () => grayPreview(A, PREVIEW_SIDE))
+  const noise = estimateNoise(gray)
+  const noisy = noise > NOISE_LIMIT
+  const scaled = a < 1 ? resizeArea(gray, Math.round(gray.width * a), Math.round(gray.height * a)) : gray
+  const A = noisy ? boxBlur3(scaled) : scaled
+  step('analysis', { width: A.width, height: A.height, scale: a.toFixed(3), noise: noise.toFixed(1) }, () => grayPreview(A, PREVIEW_SIDE))
 
   // 2. Page corners.
   let quad: Quad = fullQuad(gray.width, gray.height)
@@ -116,29 +136,41 @@ export function runPipeline(input: PipelineInput, cv: CV | null): PipelineResult
       docConfidence = doc.confidence
     }
   }
+  // 3–5. Rectified reference frame at analysis resolution, preliminary binarization (window relative
+  // to the page: staff space unknown yet) and skew from the staff lines.
+  const bootstrap = (q: Quad) => {
+    const nat = quadSize(q)
+    const refScale = Math.min(1, ANALYSIS_SIDE / Math.max(nat.width, nat.height))
+    const refW = Math.max(16, Math.round(nat.width * refScale))
+    const refH = Math.max(16, Math.round(nat.height * refScale))
+    const chain: GeometryChain = { quad: q, refW, refH, angleDeg: 0, dewarp: null }
+    const ref = remapComposite(A, chain, refW, refH, { srcScale: a })
+    const binRef = sauvola(ref, { window: odd(Math.max(15, Math.min(refW, refH) / 40)), k: 0.2 })
+    return { nat, refW, refH, chain, ref, binRef, skew: estimateSkew(binRef) }
+  }
+  let boot = bootstrap(quad)
+  // A false page edge (a shadow, a fold) warps the page: staff lines only get sharper with a real one.
+  let rejectedQuad = false
+  if (detected && boot.skew.sharpness < MIN_SHARP_WITH_QUAD) {
+    const whole = bootstrap(fullQuad(gray.width, gray.height))
+    if (whole.skew.sharpness > boot.skew.sharpness * WHOLE_PAGE_ADVANTAGE) {
+      boot = whole
+      quad = whole.chain.quad
+      detected = null
+      docConfidence = null
+      rejectedQuad = true
+    }
+  }
+  const { nat, refW, refH, chain, ref, binRef, skew } = boot
   const pScale = Math.min(1, PREVIEW_SIDE / Math.max(A.width, A.height))
   step(
     'document',
-    { found: detected ? 'auto' : input.corners ? 'manual' : 'none', confidence: docConfidence ?? '-' },
+    { found: detected ? 'auto' : input.corners ? 'manual' : rejectedQuad ? 'rejected' : 'none', confidence: docConfidence ?? '-' },
     () => grayPreview(A, PREVIEW_SIDE),
     quad.map((p) => ({ x: p.x * a * pScale, y: p.y * a * pScale })) as Quad,
   )
-
-  // 3. Rectified reference frame at analysis resolution.
-  const nat = quadSize(quad)
-  const refScale = Math.min(1, ANALYSIS_SIDE / Math.max(nat.width, nat.height))
-  const refW = Math.max(16, Math.round(nat.width * refScale))
-  const refH = Math.max(16, Math.round(nat.height * refScale))
-  const chain: GeometryChain = { quad, refW, refH, angleDeg: 0, dewarp: null }
-  const ref = remapComposite(A, chain, refW, refH, { srcScale: a })
   step('rectified', { width: refW, height: refH }, () => grayPreview(ref, PREVIEW_SIDE))
-
-  // 4. Preliminary binarization (bootstrap: window relative to the page, staff space unknown yet).
-  const binRef = sauvola(ref, { window: odd(Math.max(15, Math.min(refW, refH) / 40)), k: 0.2 })
   step('prelimBinarization', undefined, () => binToGrayPreview(binRef, PREVIEW_SIDE))
-
-  // 5. Skew from staff lines.
-  const skew = estimateSkew(binRef)
   chain.angleDeg = skew.sharpness > 1.2 ? skew.angleDeg : 0
   const binK = chain.angleDeg ? rotateBin(binRef, chain.angleDeg) : binRef
   step('skew', { degrees: chain.angleDeg, sharpness: skew.sharpness.toFixed(2) }, () => binToGrayPreview(binK, PREVIEW_SIDE))
@@ -188,7 +220,8 @@ export function runPipeline(input: PipelineInput, cv: CV | null): PipelineResult
     srcScale = 1.25 / ratio
     src = resizeArea(gray, Math.round(gray.width * srcScale), Math.round(gray.height * srcScale))
   }
-  const norm = remapComposite(src, chain, outW, outH, { background: bg, srcScale })
+  const remapped = remapComposite(src, chain, outW, outH, { background: bg, srcScale })
+  const norm = noisy ? boxBlur3(remapped) : remapped
   step('remap', { width: outW, height: outH, dpi: Math.round(dpi) }, () => grayPreview(norm, PREVIEW_SIDE))
 
   // 11. Binarization with a window that covers the largest solid symbols (noteheads, beams).
@@ -205,6 +238,10 @@ export function runPipeline(input: PipelineInput, cv: CV | null): PipelineResult
     binToGrayPreview(bin, PREVIEW_SIDE),
   )
 
+  // 13. Structure on the final image.
+  const st = runStructure(bin, m ? ss : null, m ? lt : null)
+  step('structure', structureInfo(st), () => binToGrayPreview(bin, PREVIEW_SIDE))
+
   return {
     clean: bin,
     dpi,
@@ -215,8 +252,25 @@ export function runPipeline(input: PipelineInput, cv: CV | null): PipelineResult
     staffConfidence: m?.confidence ?? 0,
     skewDeg: chain.angleDeg,
     dewarpMaxPx: chain.dewarp ? (chain.dewarp.maxAbs * outW) / refW : 0,
+    structure: st?.structure ?? null,
+    confidence: st?.confidence ?? 0,
+    needsReview: st?.needsReview ?? true,
     totalMs: Math.round(performance.now() - t0),
     steps,
+  }
+}
+
+function runStructure(bin: BinImage, ss: number | null, lt: number | null): StructureResult | null {
+  return ss && lt ? detectStructure(bin, ss, lt) : null
+}
+
+function structureInfo(st: StructureResult | null): DiagStep['info'] {
+  const systems = st?.structure.systems ?? []
+  return {
+    systems: systems.length,
+    staves: systems.reduce((n, s) => n + s.staves.length, 0),
+    measures: systems.reduce((n, s) => n + s.measures.length, 0),
+    confidence: (st?.confidence ?? 0).toFixed(2),
   }
 }
 

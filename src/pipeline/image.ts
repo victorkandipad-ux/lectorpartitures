@@ -115,6 +115,50 @@ export function grayPreview(img: GrayImage, maxSide: number): GrayImage {
   return resizeArea(img, Math.max(1, Math.round(img.width * scale)), Math.max(1, Math.round(img.height * scale)))
 }
 
+/**
+ * Noise level (sigma, gray levels) from the median absolute Laplacian on a sample of rows. The median
+ * keeps ink edges, a small fraction of a page, from counting as noise (Immerkaer's estimator).
+ */
+export function estimateNoise(img: GrayImage): number {
+  const { width: w, height: h, data } = img
+  if (w < 3 || h < 3) return 0
+  const hist = new Uint32Array(1024)
+  let n = 0
+  const rowStep = Math.max(1, Math.floor(h / 200))
+  for (let y = 1; y < h - 1; y += rowStep) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x
+      const lap =
+        data[i - w - 1] - 2 * data[i - w] + data[i - w + 1] - 2 * data[i - 1] + 4 * data[i] - 2 * data[i + 1] + data[i + w - 1] - 2 * data[i + w] + data[i + w + 1]
+      hist[Math.min(1023, Math.abs(lap))]++
+      n++
+    }
+  }
+  let acc = 0
+  for (let v = 0; v < 1024; v++) {
+    acc += hist[v]
+    if (acc * 2 >= n) return v / (0.6745 * 6)
+  }
+  return 0
+}
+
+/** 3×3 box filter (separable). */
+export function boxBlur3(img: GrayImage): GrayImage {
+  const { width: w, height: h, data } = img
+  const tmp = new Uint16Array(w * h)
+  for (let y = 0; y < h; y++) {
+    const o = y * w
+    for (let x = 0; x < w; x++) tmp[o + x] = data[o + (x > 0 ? x - 1 : x)] + data[o + x] + data[o + (x < w - 1 ? x + 1 : x)]
+  }
+  const out = new Uint8Array(w * h)
+  for (let y = 0; y < h; y++) {
+    const a = y > 0 ? y - 1 : y
+    const b = y < h - 1 ? y + 1 : y
+    for (let x = 0; x < w; x++) out[y * w + x] = Math.round((tmp[a * w + x] + tmp[y * w + x] + tmp[b * w + x]) / 9)
+  }
+  return { width: w, height: h, data: out }
+}
+
 /** Otsu threshold over a 256-bin histogram. */
 export function otsu(data: Uint8Array): number {
   const hist = new Float64Array(256)

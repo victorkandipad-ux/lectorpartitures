@@ -144,10 +144,19 @@ export function WorkScreen({ id }: { id: string }) {
             ) : (
               <PhotoPage page={p} />
             )}
-            {(p.pipelineVersion < PIPELINE_VERSION || p.pipelineError || diagnostics) && (
+            {(p.pipelineVersion < PIPELINE_VERSION || p.pipelineError || p.needsReview || diagnostics) && (
               <p className="page-note">
                 {p.pipelineVersion < PIPELINE_VERSION && es.processing.pending}
                 {p.pipelineError && <span className="error-text">{es.processing.failed}</span>}
+                {p.needsReview && !p.pipelineError && <span data-testid="needs-review">{es.processing.needsReview}</span>}
+                {diagnostics && p.auto && (
+                  <span data-testid="structure-summary">
+                    {es.processing.structure(
+                      p.auto.systems.length,
+                      p.auto.systems.reduce((n, s) => n + s.measures.length, 0),
+                    )}
+                  </span>
+                )}
                 {diagnostics && <a href={`#/diag/${p.id}`}>{es.work.diagnostics}</a>}
               </p>
             )}

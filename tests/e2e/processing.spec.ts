@@ -76,8 +76,11 @@ test('diagnostics panel shows every pipeline step', async ({ page }) => {
   await importFile(page, 'input-gallery', { name: 'dvorak.jpg', mimeType: 'image/jpeg', buffer: readFileSync(JPG) }, 'Diag')
   await expect(page.getByTestId('card-processing')).toHaveCount(0, { timeout: 60_000 })
   await page.getByRole('button', { name: /Abrir: Diag/ }).click()
+  // The Dvořák theme is one system of three staves and eight measures.
+  await expect(page.getByTestId('structure-summary')).toHaveText('1 sistema · 8 compases')
   await page.getByRole('link', { name: 'Diagnóstico' }).click()
-  await expect(page.getByTestId('diag-step')).toHaveCount(11, { timeout: 30_000 })
+  await expect(page.getByTestId('diag-step')).toHaveCount(12, { timeout: 30_000 })
+  await expect(page.getByText('Estructura (pentagramas, sistemas y compases)')).toBeVisible()
   await expect(page.getByText('Binarizado Sauvola')).toBeVisible()
   await expect(page.locator('.diag-image').first()).toBeVisible()
 })

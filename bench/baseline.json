@@ -1,0 +1,16 @@
+{
+  "clean.staves": 0.96,
+  "clean.systems": 0.96,
+  "clean.measures": 0.972,
+  "degraded.rotate3.systems": 0.96,
+  "degraded.perspective.systems": 0.96,
+  "degraded.shadow.systems": 0.88,
+  "degraded.noise.systems": 0.96,
+  "degraded.blur.systems": 0.92,
+  "degraded.lowres.systems": 0.92,
+  "degraded.curl.systems": 0.92,
+  "degraded.staves": 0.949,
+  "degraded.systems": 0.931,
+  "degraded.measures": 0.96,
+  "degraded.barlineAgreement": 0.855
+}

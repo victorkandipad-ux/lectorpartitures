@@ -119,7 +119,9 @@ describe('pipeline on real fixtures', () => {
       'remap',
       'sauvola',
       'cleanup',
+      'structure',
     ])
+    expect(r.structure?.systems.length).toBeGreaterThan(0)
   })
 
   it('vector PDF pages skip geometry and cleanup', () => {
@@ -127,7 +129,7 @@ describe('pipeline on real fixtures', () => {
     const r = runPipeline({ gray: g, kind: 'pdf-vector', dpi: 300 }, null)
     expect(r.clean.width).toBe(800)
     expect(r.dpi).toBe(300)
-    expect(r.steps.map((s) => s.name)).toEqual(['threshold', 'staffMetrics'])
+    expect(r.steps.map((s) => s.name)).toEqual(['threshold', 'staffMetrics', 'structure'])
   })
 })
 

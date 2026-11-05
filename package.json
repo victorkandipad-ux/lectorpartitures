@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "assets": "pwa-assets-generator",
+    "bench": "vitest run -c vitest.bench.config.ts robustness",
     "bench:preview": "vitest run -c vitest.bench.config.ts preview"
   },
   "dependencies": {

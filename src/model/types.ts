@@ -43,6 +43,7 @@ export interface Rect {
   h: number
 }
 
+/** Barline closing a measure. Repeat suffix: side of the line with the dots (l = end repeat, r = start repeat). */
 export type BarlineType = 'single' | 'double' | 'final' | 'repeat-l' | 'repeat-r' | 'repeat-lr'
 
 /** Placeholder for future OMR output (notes, rests, clefs...). */

@@ -19,6 +19,8 @@ dispositivo y permite leerlas cómodamente en tres modos (página, sistemas y co
 | `npm run preview` | Sirve `dist/` (con service worker) en la red local |
 | `npm test` | Tests unitarios (Vitest) |
 | `npm run e2e` | Tests E2E (Playwright, WebKit con emulación de iPhone) |
+| `npm run bench` | Banco de robustez de la estructura frente a `bench/baseline.json` (unos 2,5 min) |
+| `npm run bench:preview` | Páginas limpias y superposiciones de estructura en `bench/results/preview/` |
 | `npm run tunnel` | Túnel HTTPS con cloudflared hacia `localhost:5173` |
 
 ## Probar en el iPhone desde Windows

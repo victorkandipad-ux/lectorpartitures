@@ -7,7 +7,7 @@ import { loadOpenCV } from '../pipeline/cv'
 import { bitmapToGray } from '../pipeline/decode'
 import { grayImage, type BinImage, type GrayImage } from '../pipeline/image'
 import { runPipeline, type DiagStep, type SourceKind } from '../pipeline/index'
-import type { Quad } from '../model/types'
+import type { PageStructure, Quad } from '../model/types'
 
 const THUMB_WIDTH = 360
 
@@ -38,6 +38,9 @@ export interface ProcessResponse {
   staffConfidence: number
   skewDeg: number
   dewarpMaxPx: number
+  structure: PageStructure | null
+  confidence: number
+  needsReview: boolean
   totalMs: number
   /** Includes decoding and encoding. */
   wallMs: number
@@ -111,6 +114,9 @@ const api = {
       staffConfidence: r.staffConfidence,
       skewDeg: r.skewDeg,
       dewarpMaxPx: r.dewarpMaxPx,
+      structure: r.structure,
+      confidence: r.confidence,
+      needsReview: r.needsReview,
       totalMs: r.totalMs,
       wallMs: Math.round(performance.now() - t0),
       steps: r.steps,

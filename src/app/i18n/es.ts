@@ -49,6 +49,9 @@ export const es = {
   processing: {
     pending: 'Procesando…',
     failed: 'Error al procesar una página',
+    needsReview: 'Revisar: estructura dudosa',
+    structure: (systems: number, measures: number) =>
+      `${systems} ${systems === 1 ? 'sistema' : 'sistemas'} · ${measures} ${measures === 1 ? 'compás' : 'compases'}`,
   },
   exportPdf: {
     title: 'Exportar PDF',
@@ -80,6 +83,7 @@ export const es = {
       remap: 'Remapeo + iluminación',
       sauvola: 'Binarizado Sauvola',
       cleanup: 'Limpieza',
+      structure: 'Estructura (pentagramas, sistemas y compases)',
     } as Record<string, string>,
   },
   offline: {

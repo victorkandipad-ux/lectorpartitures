@@ -31,6 +31,17 @@ Plan completo y fases: ver historial de commits y la sección «Fases» abajo.
   `pipelineVersion < PIPELINE_VERSION` (`src/pipeline/version.ts`; subirla reprocesa todo).
   Si el worker no tiene `OffscreenCanvas`, el hilo principal decodifica a gris y lo transfiere.
 - PDF vectorial: se omite la limpieza agresiva; sólo umbral + estructura.
+- Detección de página validada: si con el cuadrilátero las líneas no salen nítidas y sin él sí, se descarta
+  (el borde de una sombra parecía un borde de página). Con ruido alto (`estimateNoise`) se suaviza antes de binarizar.
+- Estructura (`staves.ts`, `barlines.ts`, `structure.ts`), sobre la página limpia y en sus píxeles:
+  - Pentagramas: peine de 5 líneas por franjas verticales sobre la proyección de runs finos; los aciertos se
+    enlazan en horizontal (tolera curvatura residual y pentagramas parciales). Se filtran por continuidad de línea.
+  - Sistemas: conector físico (corchete/llave a la izquierda, barra que cruza) o barras alineadas; después
+    `regularize` usa el layout mayoritario de la página para unir fragmentos y partir bloques (esos sistemas
+    salen con menos confianza). Último recurso: huecos periódicos. Los pentagramas sin notas ni barras se descartan.
+  - Compases: los candidatos no se descartan, se puntúan (cobertura, cabeza de nota, extensión) y el sistema decide
+    por consenso. Tipos de barra por grupos de trazos y puntillos de repetición.
+  - `page.needsReview`: confianza baja o barras dudosas. Avisa, no bloquea (el editor llega en F5).
 - Datos: `page.auto` (pipeline) + `page.overrides` (ediciones del usuario, coords normalizadas 0–1).
   Estructura efectiva = `applyOverrides(auto, overrides)`. Reprocesar nunca toca `overrides`.
 - Visor: un motor de layout puro para los 3 modos (página/sistemas/compases) que produce
@@ -64,8 +75,12 @@ Measure { id, xStart, xEnd, barline, confidence, symbols?: MusicSymbol[] }   // 
 
 ## Comandos
 - `npm run dev` (vite --host) · `npm run tunnel` (cloudflared → HTTPS para iPhone)
-- `npm test` (Vitest) · `npm run bench` (métricas de robustez vs `bench/baseline.json`, F4)
-- `npm run bench:preview` (limpia las 25 fixtures → `bench/results/preview/*.png` + `log.txt`; `ONLY=21` filtra)
+- `npm test` (Vitest)
+- `npm run bench` (estructura frente a `bench/fixtures/real/truth.json`, etiquetado a mano, en las 25 fixtures y en
+  7 degradaciones de cada una, `bench/degrade.ts`; compara con `bench/baseline.json`, informe en
+  `bench/results/report.txt`. `BENCH_UPDATE=1` reescribe el baseline: sólo tras una mejora justificada)
+- `npm run bench:preview` (limpia las 25 fixtures → `bench/results/preview/*.png`, `*.overlay.jpg` con la estructura
+  y `log.txt`; `ONLY=21` filtra)
 - `npm run e2e` (Playwright WebKit, emulación iPhone)
 - Deploy: push a `main` → GitHub Actions → Pages.
 

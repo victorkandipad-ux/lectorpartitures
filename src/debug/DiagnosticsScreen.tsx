@@ -5,12 +5,38 @@ import { useEffect, useRef, useState } from 'react'
 import { es } from '../app/i18n/es'
 import { db } from '../db/schema'
 import { getPages, listWorks } from '../db/repo'
-import type { Quad } from '../model/types'
+import type { PageStructure, Quad } from '../model/types'
 import type { GrayImage } from '../pipeline/image'
 import { describeError, processPage } from '../process/processor'
 import type { ProcessResponse } from '../workers/pipeline.worker'
 
-function StepImage({ image, quad }: { image: GrayImage; quad?: Quad }) {
+/** Staves in blue, system boxes in orange, barlines in green. `scale` maps clean-page pixels to the image. */
+function drawStructure(ctx: CanvasRenderingContext2D, st: PageStructure, scale: number) {
+  ctx.lineWidth = Math.max(1, ctx.canvas.width / 800)
+  for (const sys of st.systems) {
+    const { x, y, w, h } = sys.bbox
+    ctx.strokeStyle = '#2f6df6'
+    ctx.beginPath()
+    for (const staff of sys.staves) {
+      for (const ly of staff.lineYs) {
+        ctx.moveTo(x * scale, ly * scale)
+        ctx.lineTo((x + w) * scale, ly * scale)
+      }
+    }
+    ctx.stroke()
+    ctx.strokeStyle = '#12a150'
+    ctx.beginPath()
+    for (const m of sys.measures) {
+      ctx.moveTo(m.xEnd * scale, y * scale)
+      ctx.lineTo(m.xEnd * scale, (y + h) * scale)
+    }
+    ctx.stroke()
+    ctx.strokeStyle = '#f5820b'
+    ctx.strokeRect(x * scale, y * scale, w * scale, h * scale)
+  }
+}
+
+function StepImage({ image, quad, structure, cleanWidth }: { image: GrayImage; quad?: Quad; structure?: PageStructure | null; cleanWidth?: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const c = ref.current
@@ -33,10 +59,11 @@ function StepImage({ image, quad }: { image: GrayImage; quad?: Quad }) {
       ctx.closePath()
       ctx.stroke()
     }
+    if (structure && cleanWidth) drawStructure(ctx, structure, image.width / cleanWidth)
     return () => {
       c.width = c.height = 0
     }
-  }, [image, quad])
+  }, [image, quad, structure, cleanWidth])
   return <canvas ref={ref} className="diag-image" />
 }
 
@@ -96,7 +123,14 @@ function PageDiagnostics({ pageId }: { pageId: string }) {
                 ))}
               </dl>
             )}
-            {s.image && <StepImage image={s.image} quad={s.quad} />}
+            {s.image && (
+              <StepImage
+                image={s.image}
+                quad={s.quad}
+                structure={s.name === 'structure' ? res.structure : undefined}
+                cleanWidth={res.width}
+              />
+            )}
           </li>
         ))}
       </ol>

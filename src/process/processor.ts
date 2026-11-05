@@ -157,6 +157,9 @@ async function saveResult(db: AtrilDB, page: Page, res: ProcessResponse, isVecto
         docConfidence: res.docConfidence,
         ms: res.wallMs,
       },
+      auto: res.structure,
+      confidence: res.confidence,
+      needsReview: res.needsReview,
       pipelineVersion: PIPELINE_VERSION,
       pipelineError: undefined,
     })
