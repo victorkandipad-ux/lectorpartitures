@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BinImage } from '../../src/pipeline/image'
 import { detectStaves } from '../../src/pipeline/staves'
+import { estimatePageSkew } from '../../src/pipeline/skew'
 import { detectStructure } from '../../src/pipeline/structure'
 import { rng } from '../support/synth'
 
@@ -221,6 +222,53 @@ describe('measures', () => {
     expect(ms.map((m) => Math.round(m.xEnd / 100))).toEqual([5, 10, 19])
   })
 
+  it('a note right above a barline that stops at the staff does not disqualify it', () => {
+    const ms = solo((p) => {
+      ;[500, 1000, 1900].forEach((x) => bar(p, x))
+      p.note(1000, top - 1.2 * ss, ss)
+    })
+    expect(ms.map((m) => Math.round(m.xEnd / 100))).toEqual([5, 10, 19])
+  })
+
+  it('a thick barline in the middle of a system counts', () => {
+    const ms = solo((p) => {
+      ;[500, 1400, 1900].forEach((x) => bar(p, x))
+      bar(p, 950, Math.round(1.2 * ss))
+    })
+    expect(ms.map((m) => Math.round(m.xEnd / 100))).toEqual([5, 10, 14, 19])
+  })
+
+  it('a start repeat right after the clef and key adds no measure', () => {
+    const ms = solo((p) => {
+      const x = 80 + 8 * ss // past the shortest first measure, within the widest header
+      bar(p, x, 2 * lt)
+      bar(p, x + 2 * lt + 3)
+      const dotX = x + 2 * lt + 3 + lt + 0.5 * ss
+      p.note(dotX, top + 1.5 * ss + lt / 2, 0.45 * ss)
+      p.note(dotX, top + 2.5 * ss + lt / 2, 0.45 * ss)
+      ;[800, 1900].forEach((x) => bar(p, x))
+    })
+    expect(ms.map((m) => Math.round(m.xEnd / 100))).toEqual([8, 19])
+  })
+
+  it('barlines slanted across a many-staff system still line up', () => {
+    const tops = [40, 200, 360, 520, 680, 840]
+    const page = new Page(w, 1000)
+    const bottom = tops[tops.length - 1] + 4 * ss + lt - 1
+    page.rect(76, tops[0], 76 + lt, bottom)
+    for (const t of tops) {
+      page.staff(t, ss, lt, 80, 1900)
+      // The whole system leans: about 2 degrees, several staff spaces from top to bottom.
+      for (const x of [600, 1100, 1600]) {
+        const dx = (t - tops[0]) * 0.035
+        page.rect(x + dx, t, x + dx + lt - 1, t + 4 * ss + lt - 1)
+      }
+    }
+    const systems = detectStructure(page, ss, lt).structure.systems
+    expect(systems).toHaveLength(1)
+    expect(systems[0].measures).toHaveLength(4)
+  })
+
   it('a stem-like stroke overshooting the staff is not a barline', () => {
     const ms = solo((p) => {
       ;[500, 1900].forEach((x) => bar(p, x))
@@ -281,5 +329,23 @@ describe('measures', () => {
       bar(p, 1900)
     })
     expect(ms.map((m) => Math.round(m.xEnd / 100))).toEqual([6, 12, 19])
+  })
+})
+
+describe('page skew', () => {
+  const ss = 20
+  const lt = 3
+  const tops = [100, 300, 500, 700, 900]
+
+  it('a symmetric curl is not a rotation', () => {
+    const page = new Page(2000, 1200)
+    for (const t of tops) page.staff(t, ss, lt, 60, 1940, (x) => 30 * Math.sin((Math.PI * x) / 2000) ** 2)
+    expect(Math.abs(estimatePageSkew(page).angleDeg)).toBeLessThan(0.5)
+  })
+
+  it('a rotated page keeps its angle', () => {
+    const page = new Page(2000, 1200)
+    for (const t of tops) page.staff(t, ss, lt, 60, 1940, (x) => (x - 1000) * Math.tan((1.5 * Math.PI) / 180))
+    expect(estimatePageSkew(page).angleDeg).toBeCloseTo(1.5, 0)
   })
 })

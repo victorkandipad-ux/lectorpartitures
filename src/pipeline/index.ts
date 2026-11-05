@@ -12,7 +12,7 @@ import { binToGrayPreview, boxBlur3, estimateNoise, grayPreview, resizeArea, typ
 import { estimateBackground } from './illumination'
 import { staffMetrics, type StaffMetrics } from './runlength'
 import { sauvola, threshold } from './sauvola'
-import { estimateSkew, rotateBin } from './skew'
+import { estimatePageSkew, rotateBin } from './skew'
 import { denoise } from './denoise'
 import { detectStructure, type StructureResult } from './structure'
 import type { PageStructure, Quad } from '../model/types'
@@ -146,7 +146,7 @@ export function runPipeline(input: PipelineInput, cv: CV | null): PipelineResult
     const chain: GeometryChain = { quad: q, refW, refH, angleDeg: 0, dewarp: null }
     const ref = remapComposite(A, chain, refW, refH, { srcScale: a })
     const binRef = sauvola(ref, { window: odd(Math.max(15, Math.min(refW, refH) / 40)), k: 0.2 })
-    return { nat, refW, refH, chain, ref, binRef, skew: estimateSkew(binRef) }
+    return { nat, refW, refH, chain, ref, binRef, skew: estimatePageSkew(binRef) }
   }
   let boot = bootstrap(quad)
   // A false page edge (a shadow, a fold) warps the page: staff lines only get sharper with a real one.

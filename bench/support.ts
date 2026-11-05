@@ -4,15 +4,19 @@ import jpeg from 'jpeg-js'
 import { rgbaToGray, type BinImage, type GrayImage } from '../src/pipeline/image'
 import type { PageStructure } from '../src/model/types'
 
-export const FIXTURES_DIR = 'bench/fixtures/real'
+/** FIXTURES=bench/fixtures/holdout runs a tool over the validation pages, never used for tuning. */
+export const FIXTURES_DIR = process.env.FIXTURES ?? 'bench/fixtures/real'
 
 export function loadFixture(file: string): GrayImage {
   const d = jpeg.decode(readFileSync(`${FIXTURES_DIR}/${file}`), { useTArray: true, maxMemoryUsageInMB: 1024 })
   return rgbaToGray(d.data, d.width, d.height)
 }
 
-/** JPEG of the clean page with staves (blue), system boxes (orange) and barlines (green). */
-export function structureOverlay(bin: BinImage, s: PageStructure | null, maxSide = 1400): Buffer {
+/**
+ * JPEG of the clean page with system boxes (orange), staff ticks (blue, left margin) and barline ticks
+ * above and below each system. Ticks instead of full lines, so the real barlines stay visible.
+ */
+export function structureOverlay(bin: BinImage, s: PageStructure | null, maxSide = 1800): Buffer {
   const scale = Math.min(1, maxSide / Math.max(bin.width, bin.height))
   const w = Math.round(bin.width * scale)
   const h = Math.round(bin.height * scale)
@@ -61,8 +65,12 @@ export function structureOverlay(bin: BinImage, s: PageStructure | null, maxSide
     hline(b.x, b.x + b.w, b.y + b.h, [255, 140, 0])
     vline(b.x, b.y, b.y + b.h, [255, 140, 0])
     vline(b.x + b.w, b.y, b.y + b.h, [255, 140, 0])
-    for (const st of sys.staves) for (const y of st.lineYs) hline(b.x, b.x + b.w, y, [40, 90, 255])
-    for (const m of sys.measures) vline(m.xEnd, b.y, b.y + b.h, barColor[m.barline], 2)
+    for (const st of sys.staves) for (const y of st.lineYs) hline(b.x - 14 / scale, b.x + 6 / scale, y, [40, 90, 255])
+    const tick = 16 / scale
+    for (const m of sys.measures) {
+      vline(m.xEnd, b.y, b.y + tick, barColor[m.barline], 3)
+      vline(m.xEnd, b.y + b.h - tick, b.y + b.h, barColor[m.barline], 3)
+    }
   }
   return Buffer.from(jpeg.encode({ data: rgba, width: w, height: h }, 80).data)
 }

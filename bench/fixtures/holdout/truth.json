@@ -1,0 +1,9 @@
+{
+  "_comment": "Validation set: labelled from the images BEFORE looking at any detection, never used for tuning. measures only where they can be counted with certainty. Blank ruled staves are not counted (h04).",
+  "h01_clochette_a": { "systems": [3, 3, 3, 3], "measures": [5, 5, 4, 5] },
+  "h02_clochette_b": { "systems": [3, 3, 3, 3, 3], "measures": [5, 4, 5, 4, 4] },
+  "h03_composite_italiana": { "systems": [2, 2, 3, 3, 3, 3] },
+  "h04_smetana_cuarteto_i": { "systems": [4, 4, 4] },
+  "h10_girl_like_you_p3": { "systems": [2, 3, 3], "measures": [5, 5, 6] },
+  "h11_girl_like_you_p4": { "systems": [3, 3, 3, 3], "measures": [5, 5, 6, 6] }
+}

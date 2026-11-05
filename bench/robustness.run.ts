@@ -13,7 +13,9 @@ import { DEGRADATIONS } from './degrade'
 import { FIXTURES_DIR, loadFixture } from './support'
 
 const BASELINE = 'bench/baseline.json'
-const REPORT = 'bench/results/report.txt'
+/** FIXTURES=... (validation set): report only, it has no baseline and nothing gets tuned on it. */
+const HOLDOUT = !!process.env.FIXTURES
+const REPORT = HOLDOUT ? 'bench/results/report-holdout.txt' : 'bench/results/report.txt'
 const UPDATE = process.env.BENCH_UPDATE === '1'
 const ONLY = process.env.ONLY
 /** A barline "agrees" if it is within this fraction of the system width. */
@@ -100,6 +102,10 @@ test('robustness', async () => {
       degraded.get(key)!.add(t, d.structure)
       const dCounts = d.structure?.systems.map((s) => s.staves.length) ?? []
       if (!equal(dCounts, t.systems)) issues.push(`${key}:${dCounts.join(',')}`)
+      else if (t.measures) {
+        const dm = d.structure?.systems.map((x) => x.measures.length) ?? []
+        if (!equal(dm, t.measures)) issues.push(`${key}.m:${dm.join(',')}`)
+      }
       // Barline stability against the undegraded run.
       const other = barPositions(d.structure)
       if (equal(dCounts, counts)) {
@@ -122,6 +128,7 @@ test('robustness', async () => {
   }
   const all = [...degraded.values()]
   for (const [k, v] of degraded) metrics[`degraded.${k}.systems`] = rate(v.systems, v.n)
+  for (const [k, v] of degraded) metrics[`degraded.${k}.measures`] = rate(v.measures, v.measuresN)
   metrics['degraded.staves'] = rate(sum(all.map((v) => v.staves)), sum(all.map((v) => v.n)))
   metrics['degraded.systems'] = rate(sum(all.map((v) => v.systems)), sum(all.map((v) => v.n)))
   metrics['degraded.measures'] = rate(sum(all.map((v) => v.measures)), sum(all.map((v) => v.measuresN)))
@@ -137,7 +144,7 @@ test('robustness', async () => {
   ].join('\n')
   writeFileSync(REPORT, report)
 
-  if (ONLY) return
+  if (ONLY || HOLDOUT) return
   if (UPDATE || !existsSync(BASELINE)) {
     writeFileSync(BASELINE, JSON.stringify(metrics, null, 2) + '\n')
     return

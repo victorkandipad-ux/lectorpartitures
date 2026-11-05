@@ -17,13 +17,18 @@ export interface BarCandidate {
   extDown: number
   /** A notehead-sized blob is attached to the stroke. */
   hasHead: boolean
+  /** Same width over the staff: a ruled stroke, unlike the strokes of a clef or a time signature. */
+  uniform: boolean
 }
 
 /** Fraction of the rows between lines that must have ink (weak candidates are scored low). */
 const MIN_COVER = 0.75
 /** Horizontal tolerance (hand-drawn or slightly slanted strokes), in staff spaces. */
 const TILT_TOLERANCE = 0.15
-const MAX_WIDTH_SPACES = 1.2
+/** Thick barlines of old engravings, or a double barline whose strokes merged. */
+const MAX_WIDTH_SPACES = 2
+/** What a notehead (and an accidental touching it) can stick out of its stem. */
+const MAX_HEAD_SPACES = 2.5
 
 /** Horizontal ink run around (x, y), looking up to `tol` columns away from x. */
 function runAt(bin: BinImage, x: number, y: number, tol: number): { a: number; b: number } | null {
@@ -73,24 +78,85 @@ function extension(bin: BinImage, x: number, from: number, dir: 1 | -1, max: num
   return Math.max(0, n - miss)
 }
 
-/** A blob wider than a stem, tall as a notehead, touching the stroke within or next to the staff. */
-function hasNotehead(bin: BinImage, t: StaffTrack, x: number, ss: number, lt: number, tol: number): boolean {
+/**
+ * A blob wider than a stem, tall as a notehead, on the stroke itself: what lies beyond its ends (a note or
+ * a slur right above a barline that stops at the staff) is not attached to it.
+ */
+function hasNotehead(
+  bin: BinImage,
+  t: StaffTrack,
+  x: number,
+  strokeWidth: number,
+  extUp: number,
+  extDown: number,
+  ss: number,
+  lt: number,
+  tol: number,
+): boolean {
   const top = lineYAt(t, 0, x)
   const bottom = lineYAt(t, 4, x)
   const lines = [0, 1, 2, 3, 4].map((l) => lineYAt(t, l, x))
-  const minWidth = 0.7 * ss
+  // Relative to the stroke: every row of a thick barline is wide, and that is no notehead.
+  const minWidth = Math.max(0.7 * ss, strokeWidth + 0.45 * ss)
   // Wide rows within one notehead height, not necessarily contiguous: an open head only has wide
   // rows at its top and bottom arcs.
   const needRows = Math.max(3, 0.25 * ss)
   const window = Math.round(1.2 * ss)
   const wide: number[] = []
-  for (let y = Math.round(top - 1.5 * ss); y <= bottom + 1.5 * ss; y++) {
+  const y0 = Math.round(top - Math.min(extUp + lt, 1.5 * ss))
+  const y1 = bottom + Math.min(extDown + lt, 1.5 * ss)
+  for (let y = y0; y <= y1; y++) {
     if (lines.some((ly) => Math.abs(ly - y) <= lt / 2 + 1)) continue
     const run = runAt(bin, x, y, tol)
-    if (!run || run.b - run.a + 1 < minWidth) continue
+    if (!run || run.b - run.a + 1 < minWidth || run.b - run.a + 1 > strokeWidth + MAX_HEAD_SPACES * ss) continue
+    // A head leaves the stem on one side. Ink on both sides is a staff line bleeding past its nominal
+    // thickness, or a slur crossing the stroke.
+    const left = x - run.a
+    const right = run.b - x
+    if (Math.min(left, right) > 0.5 * Math.max(left, right)) continue
     wide.push(y)
     while (y - wide[0] > window) wide.shift()
     if (wide.length >= needRows) return true
+  }
+  return false
+}
+
+/**
+ * Something attached to one side only of the stroke near its ends: the arcs of an open notehead (mostly
+ * hidden by a staff line), a beam or a flag. A slur crossing a barline leaves on both sides.
+ */
+function oneSidedAtEnds(
+  bin: BinImage,
+  t: StaffTrack,
+  x: number,
+  extUp: number,
+  extDown: number,
+  strokeWidth: number,
+  ss: number,
+  lt: number,
+  tol: number,
+): boolean {
+  const lines = [0, 1, 2, 3, 4].map((l) => lineYAt(t, l, x))
+  const reach = 0.3 * ss
+  const near = Math.max(1, 0.1 * ss)
+  // Inwards only: beyond its end, the ink is not attached to the stroke.
+  const ends = [
+    [lines[0] - extUp, lines[0] - extUp + 0.8 * ss],
+    [lines[4] + extDown - 0.8 * ss, lines[4] + extDown],
+  ]
+  for (const [from, to] of ends) {
+    let rows = 0
+    for (let y = Math.round(from); y <= to; y++) {
+      if (lines.some((ly) => Math.abs(ly - y) <= lt / 2 + 1)) continue
+      const run = runAt(bin, x, y, tol)
+      // Longer than any head: a staff line crossing the row where the residual curl tilts it.
+      if (!run || run.b - run.a + 1 > strokeWidth + MAX_HEAD_SPACES * ss) continue
+      const half = strokeWidth / 2
+      const left = x - run.a - half
+      const right = run.b - x - half
+      if (run.b - run.a + 1 > strokeWidth && ((left >= reach && right < near) || (right >= reach && left < near))) rows++
+    }
+    if (rows >= 2) return true
   }
   return false
 }
@@ -127,15 +193,19 @@ export function barCandidates(bin: BinImage, t: StaffTrack, ss: number, lt: numb
     }
     widths.sort((a, b) => a - b)
     const width = widths.length ? widths[widths.length >> 1] : 0
+    const spread = widths.length ? widths[(widths.length * 3) >> 2] - widths[widths.length >> 2] : 0
     if (width <= MAX_WIDTH_SPACES * ss) {
       const margin = Math.ceil(lt / 2) + 1
+      const extUp = extension(bin, x, Math.round(lineYAt(t, 0, x)) - margin, -1, maxExtension, tol)
+      const extDown = extension(bin, x, Math.round(lineYAt(t, 4, x)) + margin, 1, maxExtension, tol)
       out.push({
         x: strokeCentre(bin, x, rows, tol),
         width,
         cover: rows.length ? covered / rows.length : 0,
-        extUp: extension(bin, x, Math.round(lineYAt(t, 0, x)) - margin, -1, maxExtension, tol),
-        extDown: extension(bin, x, Math.round(lineYAt(t, 4, x)) + margin, 1, maxExtension, tol),
-        hasHead: hasNotehead(bin, t, x, ss, lt, tol),
+        extUp,
+        extDown,
+        hasHead: hasNotehead(bin, t, x, width, extUp, extDown, ss, lt, tol) || oneSidedAtEnds(bin, t, x, extUp, extDown, width, ss, lt, tol),
+        uniform: spread <= Math.max(2, 0.2 * ss),
       })
     }
     cStart = -1
@@ -181,14 +251,14 @@ function inkBox(bin: BinImage, x0: number, y0: number, x1: number, y1: number): 
 
 /** Repeat dots in the two middle spaces, on the given side of the x range. */
 export function hasRepeatDots(bin: BinImage, t: StaffTrack, x: number, side: -1 | 1, ss: number): boolean {
-  const half = 0.25 * ss
+  const half = 0.15 * ss
   for (let d = 0.3 * ss; d <= 1.3 * ss; d += Math.max(1, 0.1 * ss)) {
     const cx = x + side * d
     const dot = (a: number, b: number) => {
       const cy = (lineYAt(t, a, cx) + lineYAt(t, b, cx)) / 2
       return inkBox(bin, cx - half, cy - half, cx + half, cy + half)
     }
-    if (dot(1, 2) >= 0.5 && dot(2, 3) >= 0.5 && dot(0, 1) < 0.3 && dot(3, 4) < 0.3) return true
+    if (dot(1, 2) >= 0.6 && dot(2, 3) >= 0.6 && dot(0, 1) < 0.3 && dot(3, 4) < 0.3) return true
   }
   return false
 }

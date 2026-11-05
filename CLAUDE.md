@@ -31,6 +31,8 @@ Plan completo y fases: ver historial de commits y la sección «Fases» abajo.
   `pipelineVersion < PIPELINE_VERSION` (`src/pipeline/version.ts`; subirla reprocesa todo).
   Si el worker no tiene `OffscreenCanvas`, el hilo principal decodifica a gris y lo transfiere.
 - PDF vectorial: se omite la limpieza agresiva; sólo umbral + estructura.
+- Inclinación por mitades de página (`estimatePageSkew`): si difieren, la página está curvada; la rotación es su media y
+  el resto lo corrige el dewarp. Con la proyección global se enganchaba a la pendiente de un lado y el dewarp no alcanzaba.
 - Detección de página validada: si con el cuadrilátero las líneas no salen nítidas y sin él sí, se descarta
   (el borde de una sombra parecía un borde de página). Con ruido alto (`estimateNoise`) se suaviza antes de binarizar.
 - Estructura (`staves.ts`, `barlines.ts`, `structure.ts`), sobre la página limpia y en sus píxeles:
@@ -39,8 +41,13 @@ Plan completo y fases: ver historial de commits y la sección «Fases» abajo.
   - Sistemas: conector físico (corchete/llave a la izquierda, barra que cruza) o barras alineadas; después
     `regularize` usa el layout mayoritario de la página para unir fragmentos y partir bloques (esos sistemas
     salen con menos confianza). Último recurso: huecos periódicos. Los pentagramas sin notas ni barras se descartan.
-  - Compases: los candidatos no se descartan, se puntúan (cobertura, cabeza de nota, extensión) y el sistema decide
-    por consenso. Tipos de barra por grupos de trazos y puntillos de repetición.
+  - Compases: los candidatos no se descartan, se puntúan (cobertura, cabeza de nota, extensión, trazo uniforme, grosor
+    típico de barra de la página) y el sistema decide por consenso. Tipos de barra por grupos de trazos y puntillos de repetición.
+  - Cabeza de nota: sólo sobre el propio trazo y hacia un lado. Lo que hay más allá de sus extremos (una nota o una
+    ligadura justo encima de una barra que acaba en la línea) no le pertenece; es la causa típica de perder barras.
+  - Consenso con cizalla por sistema (manuscritos, rotación residual) y voto por acuerdo: trazos toscos alineados en
+    muchos pentagramas son una barra aunque cada uno puntúe poco. Barra gruesa: compás, salvo en la cabecera (clave, cifra).
+  - Pentagramas vacíos en los extremos de un sistema se recortan: sólo los une la proximidad.
   - `page.needsReview`: confianza baja o barras dudosas. Avisa, no bloquea (el editor llega en F5).
 - Datos: `page.auto` (pipeline) + `page.overrides` (ediciones del usuario, coords normalizadas 0–1).
   Estructura efectiva = `applyOverrides(auto, overrides)`. Reprocesar nunca toca `overrides`.
@@ -79,6 +86,8 @@ Measure { id, xStart, xEnd, barline, confidence, symbols?: MusicSymbol[] }   // 
 - `npm run bench` (estructura frente a `bench/fixtures/real/truth.json`, etiquetado a mano, en las 25 fixtures y en
   7 degradaciones de cada una, `bench/degrade.ts`; compara con `bench/baseline.json`, informe en
   `bench/results/report.txt`. `BENCH_UPDATE=1` reescribe el baseline: sólo tras una mejora justificada)
+- Validación: `FIXTURES=bench/fixtures/holdout npx vitest run -c vitest.bench.config.ts robustness` (informe en
+  `bench/results/report-holdout.txt`). Páginas etiquetadas sin ver la detección: NO ajustar nada mirándolas, o dejan de medir.
 - `npm run bench:preview` (limpia las 25 fixtures → `bench/results/preview/*.png`, `*.overlay.jpg` con la estructura
   y `log.txt`; `ONLY=21` filtra)
 - `npm run e2e` (Playwright WebKit, emulación iPhone)

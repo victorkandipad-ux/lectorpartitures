@@ -23,6 +23,19 @@ const SOLO_SUPPORT = 0.8
 /** In staff spaces: room for clef and key before a first barline, and the narrowest plausible measure. */
 const MIN_FIRST_MEASURE = 6
 const MIN_MEASURE = 3
+/** Beyond the outer line, in staff spaces: a barline ends on it, give or take the bleed of the ink. */
+const CLEAN_END = 0.35
+/** A weak stroke counts as a vote for a barline across staves from this score on. */
+const AGREE_VOTE = 0.25
+const AGREE_MIN_STAVES = 4
+const AGREE_SHARE = 0.5
+/** Largest barline slope considered (about 3 degrees), tried in this many steps per direction. */
+const MAX_SHEAR = 0.05
+const SHEAR_STEPS = 20
+/** Strokes of adjacent staves this close, in staff spaces, line up. */
+const SHEAR_MATCH = 0.4
+/** Widest clef + key + time signature block. */
+const MAX_HEADER = 14
 const BORDER_SPACES = 1.5
 /** Page-edge columns: within this fraction of the width from the border, inked over this fraction of the height. */
 const EDGE_ZONE = 0.03
@@ -208,66 +221,145 @@ function regularize(groups: number[][], links: Evidence[], gaps: number[]): { gr
   return { groups: out, inferred }
 }
 
+/** Strokes that end exactly on the outer lines or span to the neighbouring staff. */
+function cleanEnds(c: BarCandidate, gapUp: number, gapDown: number, ss: number): boolean {
+  const ok = (ext: number, gap: number) => ext <= CLEAN_END * ss || (gap > 0 && ext >= gap - 0.75 * ss)
+  return ok(c.extUp, gapUp) && ok(c.extDown, gapDown)
+}
+
+/**
+ * Barlines of a page are ruled with one pen: the width of its unmistakable strokes tells them apart from
+ * stems, which are usually thinner. Returns 0 when the page has too few of them to tell.
+ */
+function typicalBarWidth(cands: BarCandidate[][], gaps: { up: number; down: number }[], ss: number): number {
+  const widths: number[] = []
+  cands.forEach((list, i) => {
+    for (const c of list) if (c.cover >= 0.97 && c.uniform && !c.hasHead && cleanEnds(c, gaps[i].up, gaps[i].down, ss)) widths.push(c.width)
+  })
+  if (widths.length < 3) return 0
+  widths.sort((x, y) => x - y)
+  return widths[widths.length >> 1]
+}
+
 /**
  * How much a candidate looks like a barline in its staff (0–1). Nothing is rejected outright: a real
  * barline can touch a dynamic or lose a few rows, and the system's consensus decides.
  */
-function barScore(c: BarCandidate, gapUp: number, gapDown: number, ss: number): number {
-  // A stroke that spans the gap to a neighbouring staff is no stem, whatever touches it.
+function barScore(c: BarCandidate, gapUp: number, gapDown: number, typical: number, ss: number): number {
+  const margin = Math.max(1.5, 0.25 * typical)
+  const widthOk = typical === 0 || c.width >= typical - margin
+  if (!c.hasHead && c.cover >= 0.95 && c.uniform && widthOk && cleanEnds(c, gapUp, gapDown, ss)) return 1
   const spans = (ext: number, gap: number) => gap > 0 && ext >= gap - 0.75 * ss
-  if (c.hasHead) return spans(c.extUp, gapUp) || spans(c.extDown, gapDown) ? 0.7 : 0.2
+  if (c.hasHead) {
+    if (spans(c.extUp, gapUp) || spans(c.extDown, gapDown)) return 0.7
+    // A stroke of the barline's width heading for the neighbour: a barline broken in the gap.
+    const heads = (ext: number, gap: number) => gap > 0 && ext >= ss
+    return widthOk && c.cover >= 0.97 && (heads(c.extUp, gapUp) || heads(c.extDown, gapDown)) ? 0.5 : 0.2
+  }
   const free = 1.2 * ss
-  const overshoot = (ext: number, gap: number) => ext > free && (gap === 0 || ext < gap - 0.75 * ss)
-  const shape = overshoot(c.extUp, gapUp) || overshoot(c.extDown, gapDown) ? 0.5 : 1
+  const overshoot = (ext: number, gap: number) => ext > free && !spans(ext, gap)
+  const shape = overshoot(c.extUp, gapUp) || overshoot(c.extDown, gapDown) ? 0.6 : 1
   const fill = c.cover >= 0.95 ? 1 : c.cover >= 0.85 ? 0.6 : 0.3
-  return shape * fill
+  // Clefs and time signatures cross the whole staff too, but with a varying width.
+  const ruled = c.uniform ? 1 : 0.5
+  const pen = widthOk ? 1 : 0.6
+  return shape * fill * ruled * pen
 }
 
 interface ConfirmedBar {
   x: number
   width: number
   support: number
+  /** Most of its votes are uniform strokes. */
+  ruled: boolean
+}
+
+/**
+ * Horizontal drift of the barlines per row: hand-ruled scores and residual rotation slant the whole system,
+ * and over many staves that exceeds the clustering tolerance. The slope that best lines up the barline-like
+ * strokes of adjacent staves wins; zero unless another one is clearly better.
+ */
+function systemShear(cands: ScoredCandidate[][], tracks: StaffTrack[], ss: number): number {
+  if (cands.length < 2) return 0
+  const strong = cands.map((list) => list.filter((c) => c.score >= 0.5).map((c) => c.x).sort((a, b) => a - b))
+  const matches = (slope: number) => {
+    let n = 0
+    for (let i = 1; i < strong.length; i++) {
+      const dx = slope * (tracks[i].lineYs[0] - tracks[i - 1].lineYs[0])
+      let k = 0
+      for (const x of strong[i - 1]) {
+        while (k < strong[i].length && strong[i][k] - dx < x - SHEAR_MATCH * ss) k++
+        if (k < strong[i].length && strong[i][k] - dx <= x + SHEAR_MATCH * ss) n++
+      }
+    }
+    return n
+  }
+  const base = matches(0)
+  let best = 0
+  let bestN = base
+  for (let k = -SHEAR_STEPS; k <= SHEAR_STEPS; k++) {
+    const slope = (k * MAX_SHEAR) / SHEAR_STEPS
+    const n = matches(slope)
+    if (n > bestN) {
+      bestN = n
+      best = slope
+    }
+  }
+  return bestN >= 1.25 * base + 2 ? best : 0
 }
 
 /** Clusters the staves' scored candidates by x and keeps those with enough total evidence. */
 function consensusBars(cands: ScoredCandidate[][], tracks: StaffTrack[], ss: number): ConfirmedBar[] {
-  const all = cands.flatMap((list, i) => list.map((c) => ({ c, staff: i }))).sort((a, b) => a.c.x - b.c.x)
-  const tol = 0.8 * ss
+  const shear = systemShear(cands, tracks, ss)
+  const refY = tracks[0].lineYs[0]
+  const aligned = (c: ScoredCandidate, staff: number) => c.x - shear * (tracks[staff].lineYs[0] - refY)
+  const all = cands
+    .flatMap((list, i) => list.map((c) => ({ c, staff: i, ax: aligned(c, i) })))
+    .sort((a, b) => a.ax - b.ax)
+  // The strokes of one thick double barline can each survive in a different staff.
+  const tol = (a: ScoredCandidate, b: ScoredCandidate) => 0.8 * ss + (a.width + b.width) / 4
   const out: ConfirmedBar[] = []
   let i = 0
   while (i < all.length) {
     let j = i + 1
-    while (j < all.length && all[j].c.x - all[j - 1].c.x <= tol) j++
+    while (j < all.length && all[j].ax - all[j - 1].ax <= tol(all[j].c, all[j - 1].c)) j++
     const group = all.slice(i, j)
     i = j
     // Best vote per staff. Staves the x falls outside of (indented, shorter) do not vote.
     const best = new Map<number, number>()
     for (const g of group) best.set(g.staff, Math.max(best.get(g.staff) ?? 0, g.c.score))
-    const x = mean(group.map((g) => g.c.x))
+    const voters = group.filter((g) => g.c.score >= 0.5)
+    const x = mean((voters.length ? voters : group).map((g) => g.c.x))
     const eligible = Math.max(1, tracks.filter((t) => x >= t.xStart - ss && x <= t.xEnd + ss).length)
     const support = [...best.values()].reduce((a, b) => a + b, 0) / eligible
-    if (support < (eligible === 1 ? SOLO_SUPPORT : SYSTEM_SUPPORT)) continue
+    // Rough strokes (a manuscript) lined up across many staves: stems don't do that without a head.
+    const agreeing = [...best.values()].filter((v) => v >= AGREE_VOTE).length
+    const unanimous = agreeing >= AGREE_MIN_STAVES && agreeing >= AGREE_SHARE * eligible
+    if (support < (eligible === 1 ? SOLO_SUPPORT : SYSTEM_SUPPORT) && !unanimous) continue
     // Two strokes in one staff within the cluster: a double or final barline, keep them apart.
     const strokes = new Map<number, ScoredCandidate[]>()
     for (const g of group) if (g.c.score >= 0.5) strokes.set(g.staff, [...(strokes.get(g.staff) ?? []), g.c])
     const lists = [...strokes.values()]
-    const pair = lists.find((l) => l.length >= 2)
+    const pair = lists.find((l) => l.filter((c) => c.score >= 0.8).length >= 2)?.filter((c) => c.score >= 0.8)
     if (pair) {
-      for (const c of pair) out.push({ x: c.x, width: c.width, support })
+      for (const c of pair) out.push({ x: c.x, width: c.width, support, ruled: c.uniform })
       continue
     }
     const widths = lists.flat().map((c) => c.width)
-    out.push({ x, width: widths.length ? mean(widths) : mean(group.map((g) => g.c.width)), support })
+    const ruled = group.filter((g) => g.c.uniform).length * 2 > group.length
+    out.push({ x, width: widths.length ? mean(widths) : mean(group.map((g) => g.c.width)), support, ruled })
   }
   return out
 }
 
 /** Drops strokes much wider than the system's typical barline, unless they close it (clefs, time signatures). */
-function dropWide(bars: ConfirmedBar[], xEnd: number, ss: number): ConfirmedBar[] {
+function dropWide(bars: ConfirmedBar[], xStart: number, xEnd: number, ss: number): ConfirmedBar[] {
   if (bars.length < 2) return bars
   const typical = [...bars].sort((a, b) => a.width - b.width)[bars.length >> 1].width
   return bars.filter((b, i) => {
-    if (b.width <= 1.8 * typical) return true
+    // A wide stroke is a thick barline in the middle of a system, but a clef or digit in its header.
+    const inHeader = b.x - xStart <= MAX_HEADER * ss
+    if (b.width <= (inHeader ? 1.4 : 1.8) * typical || (b.ruled && !inHeader)) return true
     const partner = bars[i - 1] && b.x - bars[i - 1].x <= 1.5 * ss
     return partner || xEnd - b.x <= 2 * ss
   })
@@ -304,11 +396,17 @@ function buildMeasures(
       continue
     }
     if (g.x0 - start < MIN_MEASURE * ss) continue
+    const barline = classifyBarline(bin, tracks, g, ss)
+    // A start repeat right after clef and key opens the first measure: there is no music before it.
+    if (measures.length === 0 && barline === 'repeat-r' && g.x0 - start < MAX_HEADER * ss) {
+      start = (g.x0 + g.x1) / 2
+      continue
+    }
     measures.push({
       id: `${sysId}m${measures.length}`,
       xStart: start,
       xEnd: (g.x0 + g.x1) / 2,
-      barline: classifyBarline(bin, tracks, g, ss),
+      barline,
       confidence: clamp01(g.support),
     })
     start = (g.x0 + g.x1) / 2
@@ -400,10 +498,11 @@ export function detectStructure(bin: BinImage, staffSpace: number, lineThickness
   // A stroke against the image border is a page edge left by the crop, never a barline.
   const margin = BORDER_SPACES * ss
   const edges = edgeColumns(bin)
+  const typical = typicalBarWidth(raw, gaps, ss)
   const cands: ScoredCandidate[][] = raw.map((list, i) =>
     list
       .filter((c) => c.x >= margin && c.x <= bin.width - 1 - margin && !nearEdgeColumn(edges, c.x, 0.5 * ss))
-      .map((c) => ({ ...c, score: barScore(c, gaps[i].up, gaps[i].down, ss) })),
+      .map((c) => ({ ...c, score: barScore(c, gaps[i].up, gaps[i].down, typical, ss) })),
   )
 
   // Group consecutive staves.
@@ -420,14 +519,25 @@ export function detectStructure(bin: BinImage, staffSpace: number, lineThickness
   const inferred = reg.inferred
   // Ruled, unused paper: a lone staff with neither music nor a convincing barline.
   const hasBars = (i: number) => cands[i].some((c) => c.score >= 0.8)
-  const groups = reg.groups.filter((g) => g.length > 1 || hasBars(g[0]) || spaceInk(bin, tracks[g[0]], lt) >= BLANK_STAFF_INK)
+  const unused = (i: number) => !hasBars(i) && spaceInk(bin, tracks[i], lt) < BLANK_STAFF_INK
+  const groups = reg.groups
+    .map((g) => {
+      // At the ends of a system too: nothing connects a blank staff but its proximity.
+      let a = 0
+      let b = g.length
+      while (a < b && unused(g[a])) a++
+      while (b > a && unused(g[b - 1])) b--
+      return g.slice(a, b)
+    })
+    .filter((g) => g.length > 0)
   if (groups.length === 0) return empty
 
   const systems: System[] = groups.map((idx, n) => {
     const ts = idx.map((i) => tracks[i])
     const id = `s${n}`
     const xEnd = Math.max(...ts.map((t) => t.xEnd))
-    const bars = dropWide(consensusBars(idx.map((i) => cands[i]), ts, ss), xEnd, ss)
+    const xStart = Math.min(...ts.map((t) => t.xStart))
+    const bars = dropWide(consensusBars(idx.map((i) => cands[i]), ts, ss), xStart, xEnd, ss)
     const measures = buildMeasures(bin, ts, bars, ss, id)
     const staves: Staff[] = ts.map((t) => ({ lineYs: t.lineYs, confidence: t.confidence }))
     return { id, bbox: { x: 0, y: 0, w: 0, h: 0 }, confidence: 0, staves, measures }

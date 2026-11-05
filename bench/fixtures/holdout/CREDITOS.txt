@@ -1,0 +1,14 @@
+Partituras de validación: NO se usan para ajustar el detector. Dominio público, Wikimedia Commons.
+
+h01_clochette_a.jpg  [3583x4890]
+    https://commons.wikimedia.org/wiki/File:La_clochette_ou_Le_diable_page_-_op%C3%A9ra-comique_en_trois_actes_-_paroles_de_M._Th%C3%A9aulon_;_musique_de_F._H%C3%A9rold_;_partition_piano_et_chant_arrang%C3%A9e_par_R._de_Vilbac_-_bpt6k1185485n_(065_of_180).jpg
+h02_clochette_b.jpg  [3583x4890]
+    https://commons.wikimedia.org/wiki/File:La_clochette_ou_Le_diable_page_-_op%C3%A9ra-comique_en_trois_actes_-_paroles_de_M._Th%C3%A9aulon_;_musique_de_F._H%C3%A9rold_;_partition_piano_et_chant_arrang%C3%A9e_par_R._de_Vilbac_-_bpt6k1185485n_(115_of_180).jpg
+h03_composite_italiana.jpg  [4984x6195]
+    https://commons.wikimedia.org/wiki/File:Partition_composite_form%C3%A9e_des_feuillets_de_diverses_%C3%A9ditions_italiennes,_piano_et_chant,_sur_lesquelles_l%27auteur_a_%C3%A9crit_les_paroles_fran%C3%A7aises_correspondantes_;_quelques_pages_de_musique_manuscrite..._-_btv1b10877352j_(191_of_231).jpg
+h04_smetana_cuarteto_i.jpg  [1237x1754]
+    https://commons.wikimedia.org/wiki/File:Smetana_Quartet_I259.jpg
+h10_girl_like_you_p3.jpg  [5651x7505]
+    https://commons.wikimedia.org/wiki/File:%22A_Girl_Like_You%22_sheet_music_-_DPLA_-_86135367b4ae6eb9578249b288c3c31d_(page_3).jpg
+h11_girl_like_you_p4.jpg  [5651x7505]
+    https://commons.wikimedia.org/wiki/File:%22A_Girl_Like_You%22_sheet_music_-_DPLA_-_86135367b4ae6eb9578249b288c3c31d_(page_4).jpg

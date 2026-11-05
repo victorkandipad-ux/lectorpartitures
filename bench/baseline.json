@@ -1,7 +1,7 @@
 {
   "clean.staves": 0.96,
   "clean.systems": 0.96,
-  "clean.measures": 0.972,
+  "clean.measures": 0.92,
   "degraded.rotate3.systems": 0.96,
   "degraded.perspective.systems": 0.96,
   "degraded.shadow.systems": 0.88,
@@ -9,8 +9,15 @@
   "degraded.blur.systems": 0.92,
   "degraded.lowres.systems": 0.92,
   "degraded.curl.systems": 0.92,
+  "degraded.rotate3.measures": 0.911,
+  "degraded.perspective.measures": 0.902,
+  "degraded.shadow.measures": 0.884,
+  "degraded.noise.measures": 0.893,
+  "degraded.blur.measures": 0.777,
+  "degraded.lowres.measures": 0.839,
+  "degraded.curl.measures": 0.839,
   "degraded.staves": 0.949,
   "degraded.systems": 0.931,
-  "degraded.measures": 0.96,
-  "degraded.barlineAgreement": 0.855
+  "degraded.measures": 0.864,
+  "degraded.barlineAgreement": 0.884
 }

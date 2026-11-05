@@ -8,7 +8,7 @@ import { runPipeline } from '../src/pipeline/index'
 import { loadOpenCVNode } from '../tests/support/opencv-node'
 import { FIXTURES_DIR, loadFixture, structureOverlay } from './support'
 
-const OUT = 'bench/results/preview'
+const OUT = process.env.FIXTURES ? 'bench/results/preview-holdout' : 'bench/results/preview'
 
 test('preview', async () => {
   mkdirSync(OUT, { recursive: true })
@@ -28,6 +28,7 @@ test('preview', async () => {
         `skew ${r.skewDeg} dew ${r.dewarpMaxPx.toFixed(1)} doc ${r.corners ? r.docConfidence : '-'} ${r.totalMs}ms`,
         `struct ${systems.map((s) => `${s.staves.length}:${s.measures.length}`).join(' ')} conf ${r.confidence.toFixed(2)}${r.needsReview ? ' REVIEW' : ''}`,
         r.steps.map((s) => `${s.name}:${s.ms}`).join(' '),
+        `\n  bars ${systems.map((s) => s.measures.map((m) => Math.round((m.xEnd / r.clean.width) * 1000)).join(',')).join(' | ')}`,
       ].join(' '),
     )
   }
